@@ -75,9 +75,13 @@
         let editingItem = null;
 
         async function load() {
-            const res = await fetch(API_URL);
-            currentData = await res.json();
-            renderList();
+            try {
+                const res = await fetch(API_URL);
+                currentData = await res.json();
+                renderList();
+            } catch (error) {
+                document.getElementById('listContainer').innerHTML = '<p style="color:red;">Ошибка подключения к базе данных.</p>';
+            }
         }
 
         function renderList() {
@@ -107,7 +111,7 @@
             const payload = {
                 action: editingItem ? 'edit' : 'add',
                 id: editingItem ? editingItem.id : Date.now(),
-                timestamp: editingItem ? editingItem.timestamp : Date.now(), // Генерируем только при добавлении
+                timestamp: editingItem ? editingItem.timestamp : Date.now(), 
                 type: document.getElementById('f_type').value,
                 title: document.getElementById('f_title').value,
                 poster: document.getElementById('f_poster').value,
