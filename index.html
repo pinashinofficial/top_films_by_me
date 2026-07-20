@@ -10,6 +10,7 @@
             --glass: rgba(30, 30, 45, 0.7);
             --primary: #e50914; --text: #ffffff;
             --sidebar-width: 250px;
+            --border-radius: 12px;
         }
         * { margin: 0; padding: 0; box-sizing: border-box; font-family: 'Segoe UI', sans-serif; }
         body { background: linear-gradient(135deg, var(--bg-start), var(--bg-end)) fixed; color: var(--text); display: flex; min-height: 100vh; }
@@ -26,36 +27,96 @@
         .nav-item:hover, .nav-item.active { background: rgba(255,255,255,0.1); border-left: 4px solid var(--primary); }
         
         /* Основной контент */
-        .main-content { flex: 1; margin-left: var(--sidebar-width); padding: 20px; transition: margin-left 0.3s ease; }
+        .main-content { flex: 1; margin-left: var(--sidebar-width); padding: 20px 40px; transition: margin-left 0.3s ease; }
         
-        /* Шапка */
-        header { display: flex; align-items: center; justify-content: flex-end; position: relative; margin-bottom: 30px; padding: 10px 0; }
-        .burger { display: none; background: none; border: none; color: white; font-size: 24px; cursor: pointer; position: absolute; left: 0; }
+        /* Красивая шапка */
+        header { 
+            display: flex; align-items: center; justify-content: flex-end; 
+            position: relative; margin-bottom: 40px; padding: 15px 30px; 
+            background: rgba(0,0,0,0.2); border-radius: 15px; 
+            border: 1px solid rgba(255,255,255,0.05);
+        }
+        .burger { display: none; background: none; border: none; color: white; font-size: 24px; cursor: pointer; position: absolute; left: 20px; }
         .tabs { position: absolute; left: 50%; transform: translateX(-50%); display: flex; gap: 10px; background: var(--glass); padding: 5px; border-radius: 12px; }
         .tab { padding: 8px 16px; border-radius: 8px; cursor: pointer; transition: 0.3s; font-weight: 500; }
         .tab.active { background: var(--primary); }
-        .brand { font-size: 24px; font-weight: bold; letter-spacing: 1px; }
+        
+        /* Надпись "Коллекция" */
+        .brand { 
+            font-size: 28px; 
+            font-weight: 800; 
+            letter-spacing: 1.5px; 
+            margin-right: 20px; /* Отступ от правого края */
+            background: linear-gradient(45deg, #ff416c, #ff4b2b);
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+            text-shadow: 0px 4px 15px rgba(255, 75, 43, 0.3);
+        }
 
         /* Сетка карточек */
-        .grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(160px, 1fr)); gap: 20px; }
-        .card { background: var(--glass); border-radius: 12px; overflow: hidden; border: 1px solid rgba(255,255,255,0.1); cursor: pointer; transition: transform 0.3s; }
-        .card:hover { transform: translateY(-5px); border-color: var(--primary); }
-        .card img { width: 100%; height: 240px; object-fit: cover; }
-        .card-info { padding: 10px; }
-        .card-title { font-size: 14px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; font-weight: bold; }
+        .grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(170px, 1fr)); gap: 25px; }
+        .card { background: var(--glass); border-radius: var(--border-radius); overflow: hidden; border: 1px solid rgba(255,255,255,0.1); cursor: pointer; transition: transform 0.3s, border-color 0.3s; }
+        .card:hover { transform: translateY(-8px); border-color: var(--primary); box-shadow: 0 10px 20px rgba(0,0,0,0.3); }
+        .card img { width: 100%; height: 250px; object-fit: cover; }
+        .card-info { padding: 12px; }
+        .card-title { font-size: 15px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; font-weight: bold; }
         .card-meta { font-size: 12px; color: #a0a5b5; margin-top: 5px; }
+
+        /* Модальное окно */
+        .modal-overlay {
+            position: fixed; top: 0; left: 0; width: 100%; height: 100%;
+            background: rgba(0, 0, 0, 0.85); backdrop-filter: blur(10px);
+            display: none; justify-content: center; align-items: center;
+            z-index: 1000; padding: 20px; opacity: 0; transition: opacity 0.3s;
+        }
+        .modal-overlay.active { display: flex; opacity: 1; }
+        
+        .modal-content {
+            background: var(--glass); border: 1px solid rgba(255,255,255,0.1);
+            border-radius: 15px; max-width: 800px; width: 100%;
+            max-height: 90vh; overflow-y: auto; position: relative;
+            box-shadow: 0 10px 40px rgba(0,0,0,0.6);
+        }
+        
+        .modal-close {
+            position: absolute; top: 15px; right: 15px; background: rgba(0,0,0,0.5);
+            border: none; color: white; width: 35px; height: 35px; border-radius: 50%;
+            font-size: 20px; cursor: pointer; z-index: 10; display: flex;
+            justify-content: center; align-items: center; transition: 0.3s;
+        }
+        .modal-close:hover { background: var(--primary); transform: rotate(90deg); }
+        
+        .modal-body { display: flex; flex-direction: column; }
+        
+        .details-poster { flex: 0 0 320px; align-self: flex-start; }
+        .details-poster img {
+            width: 100%; height: auto; object-fit: contain;
+            border-top-left-radius: 15px; border-top-right-radius: 15px;
+        }
+        
+        .details-info { padding: 30px; flex: 1; }
+        .details-title { font-size: 28px; font-weight: bold; margin-bottom: 10px; color: #fff; }
+        .details-tags { margin-bottom: 25px; color: #a0a5b5; font-size: 15px; line-height: 1.6; }
+        .details-section { margin-bottom: 20px; }
+        .details-section h4 { margin-bottom: 8px; color: var(--primary); font-size: 16px; }
+        .details-section p { color: #ccc; line-height: 1.6; font-size: 15px; }
+
+        @media (min-width: 600px) {
+            .modal-body { flex-direction: row; }
+            .details-poster img { border-bottom-left-radius: 15px; border-top-right-radius: 0; }
+        }
 
         /* Мобильная адаптация */
         @media (max-width: 768px) {
             .sidebar { transform: translateX(-100%); }
             .sidebar.open { transform: translateX(0); }
-            .main-content { margin-left: 0; }
+            .main-content { margin-left: 0; padding: 10px; }
             .burger { display: block; }
-            header { justify-content: center; flex-direction: column; gap: 15px; margin-top: 15px; }
-            .tabs { position: static; transform: none; width: 100%; justify-content: center; }
-            .brand { display: none; /* Скрываем на мобилках для экономии места или можно оставить */ }
-            .grid { grid-template-columns: repeat(auto-fill, minmax(130px, 1fr)); gap: 15px; }
-            .card img { height: 200px; }
+            header { justify-content: center; flex-direction: column; gap: 20px; margin-top: 10px; padding: 20px; }
+            .tabs { position: static; transform: none; width: 100%; justify-content: center; flex-wrap: wrap; }
+            .brand { margin-right: 0; font-size: 24px; }
+            .grid { grid-template-columns: repeat(auto-fill, minmax(140px, 1fr)); gap: 15px; }
+            .card img { height: 210px; }
         }
     </style>
 </head>
@@ -90,12 +151,22 @@
         </div>
     </main>
 
+    <!-- Модальное окно для деталей фильма -->
+    <div class="modal-overlay" id="modalOverlay" onclick="closeModal(event)">
+        <div class="modal-content">
+            <button class="modal-close" onclick="closeModal()">&times;</button>
+            <div class="modal-body" id="modalBody">
+                <!-- Контент загружается через JS -->
+            </div>
+        </div>
+    </div>
+
     <script>
         const API_URL = 'https://script.google.com/macros/s/AKfycbxw60jw7Wq9702RABq43LwFFvrYIlYoTM2UjjNvk4oXEWqdftdzPRhBb3m4I-ePMzmA/exec';
         
         let allData = [];
-        let currentCategory = 'movies'; // movies, series, cartoons
-        let currentFilter = 'main'; // main, top100, new, или название кастомного списка
+        let currentCategory = 'movies'; 
+        let currentFilter = 'main'; 
 
         document.addEventListener('DOMContentLoaded', init);
 
@@ -106,7 +177,7 @@
                 generateCustomLists();
                 render();
             } catch (error) {
-                document.getElementById('contentGrid').innerHTML = '<p>Ошибка загрузки.</p>';
+                document.getElementById('contentGrid').innerHTML = '<p style="text-align:center; color:red; grid-column: 1 / -1;">Ошибка загрузки. Проверьте ссылку Apps Script.</p>';
             }
         }
 
@@ -129,18 +200,41 @@
             render();
         }
 
+        function setFilter(filterType, el) {
+            currentFilter = filterType;
+            document.querySelectorAll('.nav-item').forEach(i => i.classList.remove('active'));
+            el.classList.add('active');
+            
+            if(window.innerWidth <= 768) toggleSidebar(); // Закрываем меню на мобилках
+            render();
+        }
+
+        function generateCustomLists() {
+            const listSet = new Set();
+            allData.forEach(item => {
+                if(item.customLists) {
+                    item.customLists.split(',').forEach(l => {
+                        const cleanName = l.trim();
+                        if(cleanName) listSet.add(cleanName);
+                    });
+                }
+            });
+
+            const container = document.getElementById('dynamicLists');
+            container.innerHTML = Array.from(listSet).map(listName => 
+                `<div class="nav-item" onclick="setFilter('${listName}', this)">📌 ${listName}</div>`
+            ).join('');
+        }
+
         function render() {
             let filtered = [];
 
-            // 1. Проверяем, где мы находимся
+            // Проверяем, где мы находимся
             if (currentFilter === 'main') {
-                // Если на Главной странице — фильтруем по табам в шапке
                 filtered = allData.filter(i => i.type === currentCategory);
             } else {
-                // Если мы в любом другом списке — берем ВСЮ базу (фильмы + сериалы + мультики)
                 filtered = [...allData];
                 
-                // Применяем фильтры сайдбара
                 if (currentFilter === 'top100') {
                     filtered = filtered.filter(i => i.topRank && i.topRank > 0)
                                        .sort((a, b) => a.topRank - b.topRank)
@@ -149,12 +243,10 @@
                     const sevenDaysAgo = Date.now() - (7 * 24 * 60 * 60 * 1000);
                     filtered = filtered.filter(i => i.timestamp && i.timestamp >= sevenDaysAgo);
                 } else {
-                    // Это кастомный список
                     filtered = filtered.filter(i => i.customLists && i.customLists.includes(currentFilter));
                 }
             }
 
-            // 2. Вывод карточек
             const grid = document.getElementById('contentGrid');
             if (filtered.length === 0) {
                 grid.innerHTML = '<p style="text-align: center; grid-column: 1 / -1; color: #a0a5b5;">Ничего не найдено.</p>';
@@ -162,12 +254,9 @@
             }
 
             grid.innerHTML = filtered.map(item => {
-                // Небольшой бонус: добавляем подпись (Фильм/Сериал/Мультфильм) в карточку, 
-                // чтобы в общих списках было понятно, что есть что.
                 const typeName = item.type === 'movies' ? 'Фильм' : item.type === 'series' ? 'Сериал' : 'Мультфильм';
-                
                 return `
-                <div class="card">
+                <div class="card" onclick="openModal('${item.id}')">
                     <img src="${item.poster}" alt="Постер">
                     <div class="card-info">
                         <div class="card-title">${item.title}</div>
@@ -176,6 +265,53 @@
                 </div>
                 `;
             }).join('');
+        }
+
+        // Функции модального окна
+        function openModal(id) {
+            const item = allData.find(i => String(i.id) === String(id));
+            if (!item) return;
+
+            const typeName = item.type === 'movies' ? 'Фильм' : item.type === 'series' ? 'Сериал' : 'Мультфильм';
+            
+            document.getElementById('modalBody').innerHTML = `
+                <div class="details-poster">
+                    <img src="${item.poster}" alt="Постер">
+                </div>
+                <div class="details-info">
+                    <div class="details-title">${item.title}</div>
+                    <div class="details-tags">
+                        ${typeName} • ${item.year} • ★ ${item.rating} <br>
+                        ${item.genres ? `Жанры: ${item.genres}` : ''}
+                    </div>
+                    ${item.description ? `
+                    <div class="details-section">
+                        <h4>Описание:</h4>
+                        <p>${item.description}</p>
+                    </div>` : ''}
+                    ${item.review ? `
+                    <div class="details-section">
+                        <h4>Мой отзыв:</h4>
+                        <p>${item.review}</p>
+                    </div>` : ''}
+                </div>
+            `;
+            
+            const overlay = document.getElementById('modalOverlay');
+            overlay.style.display = 'flex';
+            setTimeout(() => overlay.classList.add('active'), 10);
+            document.body.style.overflow = 'hidden'; 
+        }
+
+        function closeModal(event) {
+            if (event && event.target.id !== 'modalOverlay' && event.target.className !== 'modal-close') return;
+            
+            const overlay = document.getElementById('modalOverlay');
+            overlay.classList.remove('active');
+            setTimeout(() => {
+                overlay.style.display = 'none';
+                document.body.style.overflow = ''; 
+            }, 300);
         }
     </script>
 </body>
