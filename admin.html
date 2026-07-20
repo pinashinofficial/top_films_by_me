@@ -85,32 +85,32 @@
         <form id="addForm">
             <div class="form-group">
                 <label>Тип контента</label>
-                <select id="inputType" required>
-                    <option value="movies">Фильм</option>
-                    <option value="series">Сериал</option>
-                </select>
-            </div>
-            <div class="form-group">
-                <label>Название</label>
-                <input type="text" id="inputTitle" required>
-            </div>
-            <div class="form-group">
-                <label>Ссылка на постер (URL)</label>
-                <input type="url" id="inputPoster" required>
-            </div>
-            <div class="form-group">
-                <label>Жанры (через запятую)</label>
-                <input type="text" id="inputGenres" required>
-            </div>
-            <div class="form-group">
-                <label>Краткое описание</label>
-                <textarea id="inputDesc" required></textarea>
-            </div>
-            <div class="form-group">
-                <label>Чем мне понравилось</label>
-                <textarea id="inputReview" required></textarea>
-            </div>
-            <button type="submit" class="btn">Добавить в базу</button>
+                   <select id="inputType" required>
+        <option value="movies">Фильм</option>
+        <option value="series">Сериал</option>
+        <option value="cartoons">Мультфильм</option> <!-- Новая категория -->
+    </select>
+    <input type="text" id="inputTitle" placeholder="Название" required>
+    <input type="url" id="inputPoster" placeholder="Ссылка на постер" required>
+    <input type="text" id="inputGenres" placeholder="Жанры (через запятую)">
+    
+    <!-- НОВЫЕ ПОЛЯ -->
+    <div style="display: flex; gap: 10px; margin-bottom: 10px;">
+        <input type="number" id="inputYear" placeholder="Год выпуска" style="flex: 1;" required>
+        <select id="inputRating" style="flex: 1;" required>
+            <option value="" disabled selected>Моя оценка</option>
+            <option value="5">★★★★★ (5)</option>
+            <option value="4">★★★★☆ (4)</option>
+            <option value="3">★★★☆☆ (3)</option>
+            <option value="2">★★☆☆☆ (2)</option>
+            <option value="1">★☆☆☆☆ (1)</option>
+        </select>
+    </div>
+    <!-- КОНЕЦ НОВЫХ ПОЛЕЙ -->
+    
+    <textarea id="inputDesc" placeholder="Описание"></textarea>
+    <textarea id="inputReview" placeholder="Мой отзыв"></textarea>
+    <button type="submit">Добавить в базу</button>
         </form>
     </div>
 
@@ -124,7 +124,7 @@
    
 const API_URL = 'https://script.google.com/macros/s/AKfycbxdfynb-Smux0tyeX4OWNTZocMniyXvL2GIAfJ8YQJP-LZ5IvdUIjjxUeXfBJn6PY9e/exec'; 
 
-let collections = { movies: [], series: [] };
+let collections = { movies: [], series: [], cartoons: [] };
 
 document.addEventListener('DOMContentLoaded', () => {
     document.getElementById('adminList').innerHTML = '<p>Загрузка базы данных...</p>';
@@ -138,6 +138,7 @@ async function loadData() {
         
         collections.movies = data.filter(item => item.type === 'movies');
         collections.series = data.filter(item => item.type === 'series');
+        collections.cartoons = data.filter(item => item.type === 'cartoons');
         
         renderAdminList();
     } catch (error) {
@@ -162,7 +163,9 @@ document.getElementById('addForm').addEventListener('submit', async function(e) 
         genres: document.getElementById('inputGenres').value.trim(),
         description: document.getElementById('inputDesc').value.trim(),
         review: document.getElementById('inputReview').value.trim(),
-    };
+        year: document.getElementById('inputYear').value, 
+        rating: document.getElementById('inputRating').value  
+        };
 
     try {
         await fetch(API_URL, {
@@ -186,9 +189,10 @@ function renderAdminList() {
     container.innerHTML = '';
 
     const allItems = [
-        ...collections.movies.map(m => ({ ...m, typeName: 'Фильм' })),
-        ...collections.series.map(s => ({ ...s, typeName: 'Сериал' }))
-    ].sort((a, b) => b.id - a.id);
+    ...collections.movies.map(m => ({ ...m, typeName: 'Фильм' })),
+    ...collections.series.map(s => ({ ...s, typeName: 'Сериал' })),
+    ...collections.cartoons.map(c => ({ ...c, typeName: 'Мультфильм' })) // Вывод мультфильмов
+].sort((a, b) => b.id - a.id);
 
     if (allItems.length === 0) {
         container.innerHTML = '<p style="color: #888;">База данных пуста.</p>';
