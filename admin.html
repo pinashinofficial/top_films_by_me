@@ -121,87 +121,113 @@
     </div>
 
     <script>
-        let collections = { movies: [], series: [] };
+   
+const API_URL = 'https://script.google.com/macros/s/AKfycbxdfynb-Smux0tyeX4OWNTZocMniyXvL2GIAfJ8YQJP-LZ5IvdUIjjxUeXfBJn6PY9e/exec'; 
 
-        document.addEventListener('DOMContentLoaded', () => {
-            loadData();
-            renderAdminList();
+let collections = { movies: [], series: [] };
+
+document.addEventListener('DOMContentLoaded', () => {
+    document.getElementById('adminList').innerHTML = '<p>Загрузка базы данных...</p>';
+    loadData();
+});
+
+async function loadData() {
+    try {
+        const response = await fetch(API_URL);
+        const data = await response.json();
+        
+        collections.movies = data.filter(item => item.type === 'movies');
+        collections.series = data.filter(item => item.type === 'series');
+        
+        renderAdminList();
+    } catch (error) {
+        console.error("Ошибка:", error);
+        document.getElementById('adminList').innerHTML = '<p style="color:red;">Ошибка подключения к таблице</p>';
+    }
+}
+
+// Отправка формы (добавление строки в таблицу)
+document.getElementById('addForm').addEventListener('submit', async function(e) {
+    e.preventDefault();
+    const btn = this.querySelector('button[type="submit"]');
+    const originalText = btn.textContent;
+    btn.textContent = 'Сохранение...';
+    btn.disabled = true;
+
+    const newItem = {
+        id: Date.now(),
+        type: document.getElementById('inputType').value,
+        title: document.getElementById('inputTitle').value.trim(),
+        poster: document.getElementById('inputPoster').value.trim(),
+        genres: document.getElementById('inputGenres').value.trim(),
+        description: document.getElementById('inputDesc').value.trim(),
+        review: document.getElementById('inputReview').value.trim(),
+    };
+
+    try {
+        await fetch(API_URL, {
+            method: 'POST',
+            headers: { 'Content-Type': 'text/plain;charset=utf-8' },
+            body: JSON.stringify(newItem)
         });
+        
+        this.reset();
+        await loadData(); // Перезагружаем список
+    } catch (error) {
+        alert('Ошибка при сохранении!');
+    } finally {
+        btn.textContent = originalText;
+        btn.disabled = false;
+    }
+});
 
-        function loadData() {
-            const storedMovies = localStorage.getItem('myMovies');
-            const storedSeries = localStorage.getItem('mySeries');
-            // Если пусто, инициируем пустые массивы (чтобы не перетирать дефолт главной страницы)
-            collections.movies = storedMovies ? JSON.parse(storedMovies) : [];
-            collections.series = storedSeries ? JSON.parse(storedSeries) : [];
+function renderAdminList() {
+    const container = document.getElementById('adminList');
+    container.innerHTML = '';
+
+    const allItems = [
+        ...collections.movies.map(m => ({ ...m, typeName: 'Фильм' })),
+        ...collections.series.map(s => ({ ...s, typeName: 'Сериал' }))
+    ].sort((a, b) => b.id - a.id);
+
+    if (allItems.length === 0) {
+        container.innerHTML = '<p style="color: #888;">База данных пуста.</p>';
+        return;
+    }
+
+    allItems.forEach(item => {
+        const div = document.createElement('div');
+        div.className = 'list-item';
+        div.innerHTML = `
+            <div class="item-info">
+                <img src="${item.poster}" onerror="this.src='https://placehold.co/40x60/ccc/fff?text=?'">
+                <div>
+                    <strong>${item.title}</strong>
+                    <span>${item.typeName}</span>
+                </div>
+            </div>
+            <button class="btn-delete" onclick="deleteItem('${item.id}', this)">Удалить</button>
+        `;
+        container.appendChild(div);
+    });
+}
+
+// Удаление строки из таблицы
+async function deleteItem(id, btnElement) {
+    if (confirm('Точно удалить из базы?')) {
+        btnElement.textContent = 'Удаление...';
+        btnElement.disabled = true;
+        
+        try {
+            await fetch(`${API_URL}?action=delete&id=${id}`);
+            await loadData();
+        } catch (error) {
+            alert('Ошибка удаления!');
+            btnElement.textContent = 'Удалить';
+            btnElement.disabled = false;
         }
-
-        function saveData() {
-            localStorage.setItem('myMovies', JSON.stringify(collections.movies));
-            localStorage.setItem('mySeries', JSON.stringify(collections.series));
-            renderAdminList();
-        }
-
-        // Добавление новой записи
-        document.getElementById('addForm').addEventListener('submit', function(e) {
-            e.preventDefault();
-
-            const type = document.getElementById('inputType').value;
-            const newItem = {
-                id: Date.now(),
-                title: document.getElementById('inputTitle').value.trim(),
-                poster: document.getElementById('inputPoster').value.trim(),
-                genres: document.getElementById('inputGenres').value.trim(),
-                description: document.getElementById('inputDesc').value.trim(),
-                review: document.getElementById('inputReview').value.trim(),
-            };
-
-            collections[type].push(newItem);
-            saveData();
-            this.reset();
-            alert('Успешно добавлено!');
-        });
-
-        // Отрисовка списка для удаления
-        function renderAdminList() {
-            const container = document.getElementById('adminList');
-            container.innerHTML = '';
-
-            // Объединяем оба массива для удобного отображения в одном списке
-            const allItems = [
-                ...collections.movies.map(m => ({ ...m, type: 'movies', typeName: 'Фильм' })),
-                ...collections.series.map(s => ({ ...s, type: 'series', typeName: 'Сериал' }))
-            ].sort((a, b) => b.id - a.id); // Сортируем по новизне
-
-            if (allItems.length === 0) {
-                container.innerHTML = '<p style="color: #888;">База данных пуста.</p>';
-                return;
-            }
-
-            allItems.forEach(item => {
-                const div = document.createElement('div');
-                div.className = 'list-item';
-                div.innerHTML = `
-                    <div class="item-info">
-                        <img src="${item.poster}" onerror="this.src='https://placehold.co/40x60/ccc/fff?text=?'">
-                        <div>
-                            <strong>${item.title}</strong>
-                            <span>${item.typeName}</span>
-                        </div>
-                    </div>
-                    <button class="btn-delete" onclick="deleteItem(${item.id}, '${item.type}')">Удалить</button>
-                `;
-                container.appendChild(div);
-            });
-        }
-
-        // Удаление записи
-        function deleteItem(id, type) {
-            if (confirm('Точно удалить из базы?')) {
-                collections[type] = collections[type].filter(item => item.id !== id);
-                saveData();
-            }
-        }
+    }
+}
     </script>
 </body>
 </html>
