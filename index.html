@@ -241,102 +241,103 @@
     </div>
 
     <script>
-        // Базовые данные (если хранилище пустое)
-        const defaultMovies = [{ id: 1, title: "Интерстеллар", poster: "https://placehold.co/400x600/1a1a1a/ffffff?text=Interstellar", genres: "фантастика, драма", description: "Группа исследователей отправляется в путешествие сквозь червоточину.", review: "Визуальные эффекты и музыка." }];
-        const defaultSeries = [{ id: 101, title: "Во все тяжкие", poster: "https://placehold.co/400x600/1a1a1a/ffffff?text=Breaking+Bad", genres: "драма, криминал", description: "Учитель химии начинает производить метамфетамин.", review: "Идеальная трансформация главного героя." }];
+        // ВСТАВЬ СЮДА СВОЙ URL ИЗ GOOGLE APPS SCRIPT
+const API_URL = 'https://script.google.com/macros/s/AKfycbxdfynb-Smux0tyeX4OWNTZocMniyXvL2GIAfJ8YQJP-LZ5IvdUIjjxUeXfBJn6PY9e/exec'; 
 
-        let collections = { movies: [], series: [] };
-        let currentTab = 'movies';
+let collections = { movies: [], series: [] };
+let currentTab = 'movies';
 
-        document.addEventListener('DOMContentLoaded', () => {
-            initData();
-            renderGrid();
-        });
+document.addEventListener('DOMContentLoaded', () => {
+    document.getElementById('mediaGrid').innerHTML = '<h3 style="text-align:center; width:100%; color:#a0a5b5;">Загрузка данных...</h3>';
+    loadData();
+});
 
-        // Слушаем изменения localStorage из других вкладок (из файла admin.html)
-        window.addEventListener('storage', (event) => {
-            if (event.key === 'myMovies' || event.key === 'mySeries') {
-                initData();
-                renderGrid();
-            }
-        });
+async function loadData() {
+    try {
+        const response = await fetch(API_URL);
+        const data = await response.json();
+        
+        // Фильтруем датасет по типам
+        collections.movies = data.filter(item => item.type === 'movies');
+        collections.series = data.filter(item => item.type === 'series');
+        
+        renderGrid();
+    } catch (error) {
+        console.error("Ошибка загрузки:", error);
+        document.getElementById('mediaGrid').innerHTML = '<h3 style="text-align:center; width:100%; color:red;">Ошибка подключения к базе</h3>';
+    }
+}
 
-        function initData() {
-            const storedMovies = localStorage.getItem('myMovies');
-            const storedSeries = localStorage.getItem('mySeries');
-            
-            collections.movies = storedMovies ? JSON.parse(storedMovies) : [...defaultMovies];
-            collections.series = storedSeries ? JSON.parse(storedSeries) : [...defaultSeries];
-            
-            if (!storedMovies) localStorage.setItem('myMovies', JSON.stringify(collections.movies));
-            if (!storedSeries) localStorage.setItem('mySeries', JSON.stringify(collections.series));
-        }
+function switchTab(tabName) {
+    currentTab = tabName;
+    document.querySelectorAll('.tab').forEach(btn => btn.classList.remove('active'));
+    document.getElementById(`tab-${tabName}`).classList.add('active');
+    renderGrid();
+}
 
-        function switchTab(tabName) {
-            currentTab = tabName;
-            document.querySelectorAll('.tab').forEach(btn => btn.classList.remove('active'));
-            document.getElementById(`tab-${tabName}`).classList.add('active');
-            renderGrid();
-        }
+function renderGrid() {
+    const grid = document.getElementById('mediaGrid');
+    grid.innerHTML = ''; 
+    const activeArray = [...collections[currentTab]].reverse(); // Показываем новые сверху
 
-        function renderGrid() {
-            const grid = document.getElementById('mediaGrid');
-            grid.innerHTML = ''; 
-            const activeArray = [...collections[currentTab]].reverse();
+    if (activeArray.length === 0) {
+        grid.innerHTML = '<p style="color:#a0a5b5; text-align:center; width:100%;">Список пока пуст</p>';
+        return;
+    }
 
-            activeArray.forEach(item => {
-                const card = document.createElement('div');
-                card.className = 'media-card';
-                card.onclick = () => showDetails(item.id);
+    activeArray.forEach(item => {
+        const card = document.createElement('div');
+        card.className = 'media-card';
+        card.onclick = () => showDetails(item.id);
 
-                card.innerHTML = `
-                    <img src="${item.poster}" alt="${item.title}" onerror="this.src='https://placehold.co/400x600/1a1a1a/e50914?text=Нет+постера'">
-                    <div class="overlay"><h3>${item.title}</h3></div>
-                `;
-                grid.appendChild(card);
-            });
-        }
+        card.innerHTML = `
+            <img src="${item.poster}" alt="${item.title}" onerror="this.src='https://placehold.co/400x600/1a1a1a/e50914?text=Нет+постера'">
+            <div class="overlay"><h3>${item.title}</h3></div>
+        `;
+        grid.appendChild(card);
+    });
+}
 
-        function showDetails(id) {
-            const item = collections[currentTab].find(m => m.id === id);
-            if (!item) return;
+function showDetails(id) {
+    const item = collections[currentTab].find(m => String(m.id) === String(id));
+    if (!item) return;
 
-            document.getElementById('detailPoster').src = item.poster;
-            document.getElementById('detailTitle').textContent = item.title;
-            document.getElementById('detailDesc').textContent = item.description;
-            document.getElementById('detailReview').textContent = item.review;
+    document.getElementById('detailPoster').src = item.poster;
+    document.getElementById('detailTitle').textContent = item.title;
+    document.getElementById('detailDesc').textContent = item.description;
+    document.getElementById('detailReview').textContent = item.review;
 
-            const tagsContainer = document.getElementById('detailTags');
-            const tagsArray = item.genres.split(',').map(tag => tag.trim()).filter(tag => tag);
-            tagsContainer.innerHTML = tagsArray.map(tag => `<span class="hashtag">${tag.startsWith('#') ? tag : `#${tag}`}</span>`).join('');
+    const tagsContainer = document.getElementById('detailTags');
+    const tagsArray = item.genres.split(',').map(tag => tag.trim()).filter(tag => tag);
+    tagsContainer.innerHTML = tagsArray.map(tag => `<span class="hashtag">${tag.startsWith('#') ? tag : `#${tag}`}</span>`).join('');
 
-            openModal('detailsModal');
-        }
+    openModal('detailsModal');
+}
 
-        function openModal(modalId) {
-            const modal = document.getElementById(modalId);
-            modal.style.display = 'flex';
-            setTimeout(() => modal.classList.add('active'), 10);
-            document.body.style.overflow = 'hidden';
-        }
+function openModal(modalId) {
+    const modal = document.getElementById(modalId);
+    modal.style.display = 'flex';
+    setTimeout(() => modal.classList.add('active'), 10);
+    document.body.style.overflow = 'hidden';
+}
 
-        function closeModal(modalId) {
-            const modal = document.getElementById(modalId);
-            modal.classList.remove('active');
-            setTimeout(() => modal.style.display = 'none', 300);
-            document.body.style.overflow = 'auto';
-        }
+function closeModal(modalId) {
+    const modal = document.getElementById(modalId);
+    modal.classList.remove('active');
+    setTimeout(() => modal.style.display = 'none', 300);
+    document.body.style.overflow = 'auto';
+}
 
-        function closeOnOverlayClick(event, modalId) {
-            if (event.target.id === modalId) closeModal(modalId);
-        }
+function closeOnOverlayClick(event, modalId) {
+    if (event.target.id === modalId) closeModal(modalId);
+}
 
-        document.addEventListener('keydown', (e) => {
-            if (e.key === 'Escape') {
-                const activeModal = document.querySelector('.modal-overlay.active');
-                if (activeModal) closeModal(activeModal.id);
-            }
-        });
+document.addEventListener('keydown', (e) => {
+    if (e.key === 'Escape') {
+        const activeModal = document.querySelector('.modal-overlay.active');
+        if (activeModal) closeModal(activeModal.id);
+    }
+});
     </script>
 </body>
 </html>
