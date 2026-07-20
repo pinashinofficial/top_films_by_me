@@ -207,6 +207,37 @@
             color: rgba(255,255,255,0.85);
             font-size: 15px;
         }
+            .genre-filters {
+        display: flex;
+        flex-wrap: wrap;
+        gap: 10px;
+        justify-content: center;
+        margin-bottom: 25px;
+    }
+    
+    .filter-btn {
+        background: rgba(255, 255, 255, 0.05);
+        border: 1px solid rgba(255, 255, 255, 0.1);
+        color: #a0a5b5;
+        padding: 6px 16px;
+        border-radius: 20px;
+        cursor: pointer;
+        font-size: 14px;
+        transition: all 0.3s ease;
+        backdrop-filter: blur(5px);
+    }
+    
+    .filter-btn:hover {
+        background: rgba(255, 255, 255, 0.15);
+        color: #fff;
+    }
+    
+    .filter-btn.active {
+        background: #e50914; /* Красный акцент */
+        border-color: #e50914;
+        color: #fff;
+        box-shadow: 0 4px 15px rgba(229, 9, 20, 0.3);
+    }
     </style>
 </head>
 <body>
@@ -220,6 +251,12 @@
     </header>
 
     <main>
+        <!-- Контейнер для кнопок фильтрации -->
+    <div id="genreFilters" class="genre-filters"></div>
+
+    <div id="mediaGrid" class="media-grid">
+    <!-- Здесь генерируются карточки -->
+    </div>
         <div class="media-grid" id="mediaGrid"></div>
     </main>
 
@@ -246,6 +283,7 @@ const API_URL = 'https://script.google.com/macros/s/AKfycbxdfynb-Smux0tyeX4OWNTZ
 
 let collections = { movies: [], series: [] };
 let currentTab = 'movies';
+let currentGenre = 'all'; // Новая переменная для хранения выбранного жанра
 
 document.addEventListener('DOMContentLoaded', () => {
     document.getElementById('mediaGrid').innerHTML = '<h3 style="text-align:center; width:100%; color:#a0a5b5;">Загрузка данных...</h3>';
@@ -257,11 +295,11 @@ async function loadData() {
         const response = await fetch(API_URL);
         const data = await response.json();
         
-        // Фильтруем датасет по типам
         collections.movies = data.filter(item => item.type === 'movies');
         collections.series = data.filter(item => item.type === 'series');
         
-        renderGrid();
+        renderFilters(); // Генерируем кнопки жанров
+        renderGrid();    // Рисуем сетку
     } catch (error) {
         console.error("Ошибка загрузки:", error);
         document.getElementById('mediaGrid').innerHTML = '<h3 style="text-align:center; width:100%; color:red;">Ошибка подключения к базе</h3>';
@@ -270,18 +308,79 @@ async function loadData() {
 
 function switchTab(tabName) {
     currentTab = tabName;
+    currentGenre = 'all'; // Сбрасываем фильтр при переключении вкладки
+    
     document.querySelectorAll('.tab').forEach(btn => btn.classList.remove('active'));
     document.getElementById(`tab-${tabName}`).classList.add('active');
+    
+    renderFilters(); // Перерисовываем кнопки под новую категорию
     renderGrid();
 }
 
+// НОВАЯ ФУНКЦИЯ: Генерация кнопок фильтров
+function renderFilters() {
+    const filtersContainer = document.getElementById('genreFilters');
+    filtersContainer.innerHTML = '';
+
+    // Собираем все уникальные жанры
+    const allGenres = new Set();
+    collections[currentTab].forEach(item => {
+        if (item.genres) {
+            item.genres.split(',').forEach(g => {
+                // Очищаем от пробелов, приводим к нижнему регистру и убираем решетки
+                const cleanGenre = g.trim().toLowerCase().replace('#', '');
+                if (cleanGenre) allGenres.add(cleanGenre);
+            });
+        }
+    });
+
+    // Создаем кнопку "Все"
+    const allBtn = document.createElement('button');
+    allBtn.className = `filter-btn ${currentGenre === 'all' ? 'active' : ''}`;
+    allBtn.textContent = 'Все';
+    allBtn.onclick = () => filterByGenre('all');
+    filtersContainer.appendChild(allBtn);
+
+    // Создаем кнопки для каждого найденного жанра
+    Array.from(allGenres).sort().forEach(genre => {
+        const btn = document.createElement('button');
+        btn.className = `filter-btn ${currentGenre === genre ? 'active' : ''}`;
+        // Делаем первую букву заглавной для красоты
+        btn.textContent = genre.charAt(0).toUpperCase() + genre.slice(1);
+        btn.onclick = () => filterByGenre(genre);
+        filtersContainer.appendChild(btn);
+    });
+}
+
+// НОВАЯ ФУНКЦИЯ: Применение фильтра
+function filterByGenre(genre) {
+    currentGenre = genre;
+    renderFilters(); // Обновляем подсветку активной кнопки
+    renderGrid();    // Перерисовываем фильмы
+}
+
+// ОБНОВЛЕННАЯ ФУНКЦИЯ: Отрисовка с учетом фильтра
 function renderGrid() {
     const grid = document.getElementById('mediaGrid');
     grid.innerHTML = ''; 
-    const activeArray = [...collections[currentTab]].reverse(); // Показываем новые сверху
+    
+    // Берем массив текущей вкладки
+    let activeArray = collections[currentTab];
+
+    // Если выбран конкретный жанр, фильтруем массив
+    if (currentGenre !== 'all') {
+        activeArray = activeArray.filter(item => {
+            if (!item.genres) return false;
+            const itemGenres = item.genres.split(',').map(g => g.trim().toLowerCase().replace('#', ''));
+            return itemGenres.includes(currentGenre);
+        });
+    }
+    
+    // Переворачиваем, чтобы новые добавления были сверху
+    activeArray = [...activeArray].reverse(); 
 
     if (activeArray.length === 0) {
-        grid.innerHTML = '<p style="color:#a0a5b5; text-align:center; width:100%;">Список пока пуст</p>';
+        grid.innerHTML = '<p style="color:#a0a5b5; text-align:center; width:100%;">В этой категории пока ничего нет</p>';
         return;
     }
 
