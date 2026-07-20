@@ -78,34 +78,48 @@
         </div>
     </div>
 
+   <!-- Подключаем библиотеку Supabase -->
+    <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+    
     <script>
-        const API_URL = 'https://script.google.com/macros/s/AKfycbxw60jw7Wq9702RABq43LwFFvrYIlYoTM2UjjNvk4oXEWqdftdzPRhBb3m4I-ePMzmA/exec'; 
+        // Вставь те же самые URL и Key
+        const SUPABASE_URL = 'https://ktacbvcwsyajpeacdmwt.supabase.co';
+        const SUPABASE_KEY = 'sb_publishable_KbC2_RFlQ8U5_4kiR3vL4Q_bqAQVHvG';
+        const supabase = supabase.createClient(SUPABASE_URL, SUPABASE_KEY);
+
         let currentData = [];
         let editingItem = null;
 
         async function load() {
             try {
-                const res = await fetch(API_URL);
-                currentData = await res.json();
+                const { data, error } = await supabase
+                    .from('collection')
+                    .select('*')
+                    .order('id', { ascending: false }); // Сортируем: новые сверху
+
+                if (error) throw error;
+                
+                currentData = data || [];
                 renderList();
             } catch (error) {
-                document.getElementById('listContainer').innerHTML = '<p style="color:red;">Ошибка подключения к базе данных.</p>';
+                console.error(error);
+                document.getElementById('listContainer').innerHTML = '<p style="color:red;">Ошибка подключения к БД.</p>';
             }
         }
 
         function renderList() {
-            const html = currentData.sort((a,b) => b.id - a.id).map(i => `
+            const html = currentData.map(i => `
                 <div class="item">
                     <div class="item-info">
-                        <img src="${i.poster}">
+                        <img src="${i.poster || ''}">
                         <div>
                             <strong>${i.title}</strong><br>
                             <small>${i.type} | Топ: ${i.topRank || '-'} | Списки: ${i.customLists || '-'}</small>
                         </div>
                     </div>
                     <div class="actions">
-                        <button class="btn-edit" onclick="edit(${i.id})">✏️</button>
-                        <button class="btn-del" onclick="del(${i.id})">✗</button>
+                        <button class="btn-edit" onclick="edit('${i.id}')">✏️ Изменить</button>
+                        <button class="btn-del" onclick="del('${i.id}')">🗑️ Удалить</button>
                     </div>
                 </div>
             `).join('');
@@ -117,33 +131,59 @@
             const btn = document.getElementById('btnSubmit');
             btn.innerText = 'Сохранение...'; btn.disabled = true;
 
+            // Собираем данные с формы. Пустые строки для чисел превращаем в null
             const payload = {
-                action: editingItem ? 'edit' : 'add',
-                id: editingItem ? editingItem.id : Date.now(),
-                timestamp: editingItem ? editingItem.timestamp : Date.now(), 
                 type: document.getElementById('f_type').value,
                 title: document.getElementById('f_title').value,
                 poster: document.getElementById('f_poster').value,
-                year: document.getElementById('f_year').value,
-                rating: document.getElementById('f_rating').value,
+                year: parseInt(document.getElementById('f_year').value) || null,
+                rating: parseInt(document.getElementById('f_rating').value) || null,
                 genres: document.getElementById('f_genres').value,
-                topRank: document.getElementById('f_topRank').value,
+                topRank: parseInt(document.getElementById('f_topRank').value) || null,
                 customLists: document.getElementById('f_customLists').value,
                 description: document.getElementById('f_desc').value,
                 review: document.getElementById('f_review').value
             };
 
-            await fetch(API_URL, { method: 'POST', body: JSON.stringify(payload) });
-            cancel(); await load();
-            btn.innerText = 'Сохранить'; btn.disabled = false;
+            try {
+                if (editingItem) {
+                    // Обновление существующей записи (UPDATE)
+                    const { error } = await supabase
+                        .from('collection')
+                        .update(payload)
+                        .eq('id', editingItem.id);
+                    if (error) throw error;
+                } else {
+                    // Создание новой записи (INSERT)
+                    const { error } = await supabase
+                        .from('collection')
+                        .insert([payload]);
+                    if (error) throw error;
+                }
+
+                cancel(); 
+                await load();
+            } catch (error) {
+                console.error("Ошибка сохранения:", error);
+                alert("Не удалось сохранить запись. Подробности в консоли.");
+            } finally {
+                btn.innerText = 'Сохранить'; 
+                btn.disabled = false;
+            }
         };
 
         function edit(id) {
-            editingItem = currentData.find(i => i.id == id);
-            Object.keys(editingItem).forEach(k => {
+            editingItem = currentData.find(i => String(i.id) === String(id));
+            if (!editingItem) return;
+            
+            // Заполняем форму данными (убираем привязку к id, так как его нет в форме)
+            const fields = ['type', 'title', 'poster', 'year', 'rating', 'genres', 'topRank', 'customLists', 'description', 'review'];
+            
+            fields.forEach(k => {
                 const el = document.getElementById('f_' + k);
-                if(el) el.value = editingItem[k];
+                if(el) el.value = editingItem[k] !== null ? editingItem[k] : '';
             });
+            
             document.getElementById('formTitle').innerText = 'Редактирование';
             document.getElementById('btnCancel').style.display = 'block';
             window.scrollTo(0,0);
@@ -157,9 +197,20 @@
         }
 
         async function del(id) {
-            if(!confirm('Удалить?')) return;
-            await fetch(API_URL, { method: 'POST', body: JSON.stringify({action: 'delete', id: id}) });
-            load();
+            if(!confirm('Точно удалить?')) return;
+            
+            try {
+                const { error } = await supabase
+                    .from('collection')
+                    .delete()
+                    .eq('id', id);
+                    
+                if (error) throw error;
+                await load();
+            } catch (error) {
+                console.error("Ошибка удаления:", error);
+                alert("Не удалось удалить запись.");
+            }
         }
 
         document.getElementById('btnCancel').onclick = cancel;
