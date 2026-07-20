@@ -116,71 +116,66 @@
 
         function setCategory(cat, el) {
             currentCategory = cat;
+            currentFilter = 'main'; // Сбрасываем фильтр сайдбара на Главную
+            
+            // Обновляем активный таб в шапке
             document.querySelectorAll('.tab').forEach(t => t.classList.remove('active'));
             el.classList.add('active');
-            render();
-        }
 
-        function setFilter(filterType, el) {
-            currentFilter = filterType;
+            // Возвращаем активный класс пункту "Главная страница" в сайдбаре
             document.querySelectorAll('.nav-item').forEach(i => i.classList.remove('active'));
-            el.classList.add('active');
-            if(window.innerWidth <= 768) toggleSidebar(); // Закрываем меню на мобилках после клика
+            document.querySelector('.nav-item[onclick*="main"]').classList.add('active');
+            
             render();
-        }
-
-        // Вытаскиваем все уникальные списки из базы
-        function generateCustomLists() {
-            const listSet = new Set();
-            allData.forEach(item => {
-                if(item.customLists) {
-                    item.customLists.split(',').forEach(l => {
-                        const cleanName = l.trim();
-                        if(cleanName) listSet.add(cleanName);
-                    });
-                }
-            });
-
-            const container = document.getElementById('dynamicLists');
-            container.innerHTML = Array.from(listSet).map(listName => 
-                `<div class="nav-item" onclick="setFilter('${listName}', this)">📌 ${listName}</div>`
-            ).join('');
         }
 
         function render() {
-            // 1. Фильтруем по категории (Табы в шапке)
-            let filtered = allData.filter(i => i.type === currentCategory);
+            let filtered = [];
 
-            // 2. Применяем фильтры сайдбара
-            if (currentFilter === 'top100') {
-                filtered = filtered.filter(i => i.topRank && i.topRank > 0)
-                                   .sort((a, b) => a.topRank - b.topRank)
-                                   .slice(0, 100);
-            } else if (currentFilter === 'new') {
-                const sevenDaysAgo = Date.now() - (7 * 24 * 60 * 60 * 1000);
-                // Если timestamp нет (старые записи), считаем их не новыми
-                filtered = filtered.filter(i => i.timestamp && i.timestamp >= sevenDaysAgo);
-            } else if (currentFilter !== 'main') {
-                // Это кастомный список
-                filtered = filtered.filter(i => i.customLists && i.customLists.includes(currentFilter));
+            // 1. Проверяем, где мы находимся
+            if (currentFilter === 'main') {
+                // Если на Главной странице — фильтруем по табам в шапке
+                filtered = allData.filter(i => i.type === currentCategory);
+            } else {
+                // Если мы в любом другом списке — берем ВСЮ базу (фильмы + сериалы + мультики)
+                filtered = [...allData];
+                
+                // Применяем фильтры сайдбара
+                if (currentFilter === 'top100') {
+                    filtered = filtered.filter(i => i.topRank && i.topRank > 0)
+                                       .sort((a, b) => a.topRank - b.topRank)
+                                       .slice(0, 100);
+                } else if (currentFilter === 'new') {
+                    const sevenDaysAgo = Date.now() - (7 * 24 * 60 * 60 * 1000);
+                    filtered = filtered.filter(i => i.timestamp && i.timestamp >= sevenDaysAgo);
+                } else {
+                    // Это кастомный список
+                    filtered = filtered.filter(i => i.customLists && i.customLists.includes(currentFilter));
+                }
             }
 
-            // Вывод карточек
+            // 2. Вывод карточек
             const grid = document.getElementById('contentGrid');
             if (filtered.length === 0) {
                 grid.innerHTML = '<p style="text-align: center; grid-column: 1 / -1; color: #a0a5b5;">Ничего не найдено.</p>';
                 return;
             }
 
-            grid.innerHTML = filtered.map(item => `
+            grid.innerHTML = filtered.map(item => {
+                // Небольшой бонус: добавляем подпись (Фильм/Сериал/Мультфильм) в карточку, 
+                // чтобы в общих списках было понятно, что есть что.
+                const typeName = item.type === 'movies' ? 'Фильм' : item.type === 'series' ? 'Сериал' : 'Мультфильм';
+                
+                return `
                 <div class="card">
                     <img src="${item.poster}" alt="Постер">
                     <div class="card-info">
                         <div class="card-title">${item.title}</div>
-                        <div class="card-meta">${item.year} • ★ ${item.rating}</div>
+                        <div class="card-meta">${typeName} • ${item.year} • ★ ${item.rating}</div>
                     </div>
                 </div>
-            `).join('');
+                `;
+            }).join('');
         }
     </script>
 </body>
