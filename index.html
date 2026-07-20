@@ -161,8 +161,14 @@
         </div>
     </div>
 
+    <!-- Подключаем библиотеку Supabase -->
+    <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+    
     <script>
-        const API_URL = 'https://script.google.com/macros/s/AKfycbxw60jw7Wq9702RABq43LwFFvrYIlYoTM2UjjNvk4oXEWqdftdzPRhBb3m4I-ePMzmA/exec';
+        // Вставь сюда свои данные из панели Supabase
+        const SUPABASE_URL = 'https://ktacbvcwsyajpeacdmwt.supabase.co';
+        const SUPABASE_KEY = 'sb_publishable_KbC2_RFlQ8U5_4kiR3vL4Q_bqAQVHvG';
+        const supabase = supabase.createClient(SUPABASE_URL, SUPABASE_KEY);
         
         let allData = [];
         let currentCategory = 'movies'; 
@@ -172,12 +178,19 @@
 
         async function init() {
             try {
-                const res = await fetch(API_URL);
-                allData = await res.json();
+                // Запрашиваем все данные из таблицы 'collection'
+                const { data, error } = await supabase
+                    .from('collection')
+                    .select('*');
+
+                if (error) throw error;
+                
+                allData = data || [];
                 generateCustomLists();
                 render();
             } catch (error) {
-                document.getElementById('contentGrid').innerHTML = '<p style="text-align:center; color:red; grid-column: 1 / -1;">Ошибка загрузки. Проверьте ссылку Apps Script.</p>';
+                console.error("Ошибка Supabase:", error.message);
+                document.getElementById('contentGrid').innerHTML = '<p style="text-align:center; color:red; grid-column: 1 / -1;">Ошибка загрузки базы данных.</p>';
             }
         }
 
@@ -187,16 +200,13 @@
 
         function setCategory(cat, el) {
             currentCategory = cat;
-            currentFilter = 'main'; // Сбрасываем фильтр сайдбара на Главную
+            currentFilter = 'main'; 
             
-            // Показываем табы обратно, так как мы вернулись на Главную
             document.querySelector('.tabs').style.display = 'flex';
             
-            // Обновляем активный таб в шапке
             document.querySelectorAll('.tab').forEach(t => t.classList.remove('active'));
             el.classList.add('active');
 
-            // Возвращаем активный класс пункту "Главная страница" в сайдбаре
             document.querySelectorAll('.nav-item').forEach(i => i.classList.remove('active'));
             document.querySelector('.nav-item[onclick*="main"]').classList.add('active');
             
@@ -208,7 +218,6 @@
             document.querySelectorAll('.nav-item').forEach(i => i.classList.remove('active'));
             el.classList.add('active');
             
-            // Скрываем табы, если открыт любой список кроме "Главной страницы"
             const tabsContainer = document.querySelector('.tabs');
             if (filterType === 'main') {
                 tabsContainer.style.display = 'flex';
@@ -216,9 +225,10 @@
                 tabsContainer.style.display = 'none';
             }
             
-            if(window.innerWidth <= 768) toggleSidebar(); // Закрываем меню на мобилках
+            if(window.innerWidth <= 768) toggleSidebar(); 
             render();
         }
+
         function generateCustomLists() {
             const listSet = new Set();
             allData.forEach(item => {
@@ -239,19 +249,22 @@
         function render() {
             let filtered = [];
 
-            // Проверяем, где мы находимся
             if (currentFilter === 'main') {
                 filtered = allData.filter(i => i.type === currentCategory);
             } else {
                 filtered = [...allData];
                 
                 if (currentFilter === 'top100') {
+                    // Обрати внимание: Supabase может возвращать null, поэтому проверяем это
                     filtered = filtered.filter(i => i.topRank && i.topRank > 0)
                                        .sort((a, b) => a.topRank - b.topRank)
                                        .slice(0, 100);
                 } else if (currentFilter === 'new') {
-                    const sevenDaysAgo = Date.now() - (7 * 24 * 60 * 60 * 1000);
-                    filtered = filtered.filter(i => i.timestamp && i.timestamp >= sevenDaysAgo);
+                    // В Supabase даты хранятся в ISO формате
+                    const sevenDaysAgo = new Date();
+                    sevenDaysAgo.setDate(sevenDaysAgo.getDate() - 7);
+                    
+                    filtered = filtered.filter(i => i.created_at && new Date(i.created_at) >= sevenDaysAgo);
                 } else {
                     filtered = filtered.filter(i => i.customLists && i.customLists.includes(currentFilter));
                 }
@@ -277,7 +290,6 @@
             }).join('');
         }
 
-        // Функции модального окна
         function openModal(id) {
             const item = allData.find(i => String(i.id) === String(id));
             if (!item) return;
