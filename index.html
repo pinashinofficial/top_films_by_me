@@ -164,7 +164,7 @@
     <script>
         const SUPABASE_URL = 'https://ktacbvcwsyajpeacdmwt.supabase.co';
         const SUPABASE_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Imt0YWNidmN3c3lhanBlYWNkbXd0Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3ODQ1NjM4NDgsImV4cCI6MjEwMDEzOTg0OH0.OhjANu7A7Wb7GUsBjVzrvjkGJlgVsehSf6EyC1DMxR8';
-        const supabase = supabase.createClient(SUPABASE_URL, SUPABASE_KEY);
+        const supabaseClient = supabase.createClient(SUPABASE_URL, SUPABASE_KEY);
         
         let allData = [];
         let currentCategory = 'movies'; 
@@ -174,7 +174,7 @@
 
         async function init() {
             try {
-                const { data, error } = await supabase.from('collection').select('*');
+                const { data, error } = await supabaseClient.from('collection').select('*');
                 if (error) throw error;
                 
                 allData = data || [];
