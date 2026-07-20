@@ -1,0 +1,207 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Админ-панель коллекции</title>
+    <style>
+        :root {
+            --bg-color: #f4f4f9;
+            --surface-color: #ffffff;
+            --text-color: #333333;
+            --border-color: #dddddd;
+            --accent-color: #e50914; 
+            --primary-color: #2b2b2b;
+            --border-radius: 8px;
+        }
+
+        * { box-sizing: border-box; margin: 0; padding: 0; }
+
+        body {
+            font-family: 'Segoe UI', Roboto, Helvetica, Arial, sans-serif;
+            background-color: var(--bg-color);
+            color: var(--text-color);
+            padding: 40px 20px;
+            max-width: 800px;
+            margin: 0 auto;
+        }
+
+        h1 { margin-bottom: 30px; color: var(--primary-color); }
+
+        .panel {
+            background: var(--surface-color);
+            padding: 30px;
+            border-radius: var(--border-radius);
+            box-shadow: 0 4px 6px rgba(0,0,0,0.05);
+            margin-bottom: 30px;
+        }
+
+        .panel h2 { margin-top: 0; margin-bottom: 20px; border-bottom: 2px solid var(--bg-color); padding-bottom: 10px; }
+
+        /* Форма */
+        .form-group { margin-bottom: 15px; }
+        .form-group label { display: block; margin-bottom: 5px; font-weight: 600; font-size: 14px; }
+        .form-group input, .form-group textarea, .form-group select {
+            width: 100%; padding: 10px;
+            border: 1px solid var(--border-color);
+            border-radius: 4px; font-family: inherit; font-size: 15px;
+        }
+        .form-group textarea { resize: vertical; min-height: 80px; }
+        
+        .btn {
+            background-color: var(--primary-color); color: white;
+            border: none; padding: 12px 20px; font-size: 16px;
+            font-weight: 600; border-radius: 4px; cursor: pointer; width: 100%;
+        }
+        .btn:hover { background-color: #000000; }
+
+        /* Список для удаления */
+        .list-item {
+            display: flex; justify-content: space-between; align-items: center;
+            padding: 12px 0; border-bottom: 1px solid var(--border-color);
+        }
+        .list-item:last-child { border-bottom: none; }
+        
+        .item-info { display: flex; align-items: center; gap: 15px; }
+        .item-info img { width: 40px; height: 60px; object-fit: cover; border-radius: 4px; }
+        .item-info strong { display: block; font-size: 16px; }
+        .item-info span { font-size: 12px; color: #888; background: #eee; padding: 2px 6px; border-radius: 4px;}
+        
+        .btn-delete {
+            background: none; border: 1px solid var(--accent-color);
+            color: var(--accent-color); padding: 6px 12px;
+            border-radius: 4px; cursor: pointer; transition: 0.2s;
+        }
+        .btn-delete:hover { background: var(--accent-color); color: white; }
+    </style>
+</head>
+<body>
+
+    <h1>Управление коллекцией</h1>
+
+    <!-- Форма добавления -->
+    <div class="panel">
+        <h2>Добавить запись</h2>
+        <form id="addForm">
+            <div class="form-group">
+                <label>Тип контента</label>
+                <select id="inputType" required>
+                    <option value="movies">Фильм</option>
+                    <option value="series">Сериал</option>
+                </select>
+            </div>
+            <div class="form-group">
+                <label>Название</label>
+                <input type="text" id="inputTitle" required>
+            </div>
+            <div class="form-group">
+                <label>Ссылка на постер (URL)</label>
+                <input type="url" id="inputPoster" required>
+            </div>
+            <div class="form-group">
+                <label>Жанры (через запятую)</label>
+                <input type="text" id="inputGenres" required>
+            </div>
+            <div class="form-group">
+                <label>Краткое описание</label>
+                <textarea id="inputDesc" required></textarea>
+            </div>
+            <div class="form-group">
+                <label>Чем мне понравилось</label>
+                <textarea id="inputReview" required></textarea>
+            </div>
+            <button type="submit" class="btn">Добавить в базу</button>
+        </form>
+    </div>
+
+    <!-- Список для удаления -->
+    <div class="panel">
+        <h2>Редактирование базы</h2>
+        <div id="adminList"></div>
+    </div>
+
+    <script>
+        let collections = { movies: [], series: [] };
+
+        document.addEventListener('DOMContentLoaded', () => {
+            loadData();
+            renderAdminList();
+        });
+
+        function loadData() {
+            const storedMovies = localStorage.getItem('myMovies');
+            const storedSeries = localStorage.getItem('mySeries');
+            // Если пусто, инициируем пустые массивы (чтобы не перетирать дефолт главной страницы)
+            collections.movies = storedMovies ? JSON.parse(storedMovies) : [];
+            collections.series = storedSeries ? JSON.parse(storedSeries) : [];
+        }
+
+        function saveData() {
+            localStorage.setItem('myMovies', JSON.stringify(collections.movies));
+            localStorage.setItem('mySeries', JSON.stringify(collections.series));
+            renderAdminList();
+        }
+
+        // Добавление новой записи
+        document.getElementById('addForm').addEventListener('submit', function(e) {
+            e.preventDefault();
+
+            const type = document.getElementById('inputType').value;
+            const newItem = {
+                id: Date.now(),
+                title: document.getElementById('inputTitle').value.trim(),
+                poster: document.getElementById('inputPoster').value.trim(),
+                genres: document.getElementById('inputGenres').value.trim(),
+                description: document.getElementById('inputDesc').value.trim(),
+                review: document.getElementById('inputReview').value.trim(),
+            };
+
+            collections[type].push(newItem);
+            saveData();
+            this.reset();
+            alert('Успешно добавлено!');
+        });
+
+        // Отрисовка списка для удаления
+        function renderAdminList() {
+            const container = document.getElementById('adminList');
+            container.innerHTML = '';
+
+            // Объединяем оба массива для удобного отображения в одном списке
+            const allItems = [
+                ...collections.movies.map(m => ({ ...m, type: 'movies', typeName: 'Фильм' })),
+                ...collections.series.map(s => ({ ...s, type: 'series', typeName: 'Сериал' }))
+            ].sort((a, b) => b.id - a.id); // Сортируем по новизне
+
+            if (allItems.length === 0) {
+                container.innerHTML = '<p style="color: #888;">База данных пуста.</p>';
+                return;
+            }
+
+            allItems.forEach(item => {
+                const div = document.createElement('div');
+                div.className = 'list-item';
+                div.innerHTML = `
+                    <div class="item-info">
+                        <img src="${item.poster}" onerror="this.src='https://placehold.co/40x60/ccc/fff?text=?'">
+                        <div>
+                            <strong>${item.title}</strong>
+                            <span>${item.typeName}</span>
+                        </div>
+                    </div>
+                    <button class="btn-delete" onclick="deleteItem(${item.id}, '${item.type}')">Удалить</button>
+                `;
+                container.appendChild(div);
+            });
+        }
+
+        // Удаление записи
+        function deleteItem(id, type) {
+            if (confirm('Точно удалить из базы?')) {
+                collections[type] = collections[type].filter(item => item.id !== id);
+                saveData();
+            }
+        }
+    </script>
+</body>
+</html>

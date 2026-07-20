@@ -1,0 +1,342 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Моя коллекция</title>
+    <style>
+        /* =========================================
+           ОБНОВЛЕННЫЕ КРАСОЧНЫЕ ПЕРЕМЕННЫЕ
+           ========================================= */
+        :root {
+            --bg-gradient-start: #0f111a;
+            --bg-gradient-end: #1a0b1c;
+            --surface-color: rgba(30, 30, 45, 0.7); /* Полупрозрачный фон для эффекта стекла */
+            --text-color: #ffffff;
+            --text-muted: #a0a5b5;
+            --accent-gradient: linear-gradient(135deg, #ff007a 0%, #7928ca 100%);
+            --glow-color: rgba(121, 40, 202, 0.6);
+            --border-radius: 12px;
+            --transition-speed: 0.3s;
+        }
+
+        * { box-sizing: border-box; margin: 0; padding: 0; }
+
+        body {
+            font-family: 'Segoe UI', Roboto, Helvetica, Arial, sans-serif;
+            background: linear-gradient(135deg, var(--bg-gradient-start), var(--bg-gradient-end));
+            background-attachment: fixed; /* Фон не дергается при скролле */
+            color: var(--text-color);
+            line-height: 1.6;
+            min-height: 100vh;
+        }
+
+        /* =========================================
+           ШАПКА
+           ========================================= */
+        header {
+            display: flex;
+            align-items: center;
+            gap: 40px;
+            padding: 20px 40px;
+            background: rgba(15, 17, 26, 0.6);
+            backdrop-filter: blur(15px); /* Размытие фона под шапкой */
+            border-bottom: 1px solid rgba(255, 255, 255, 0.05);
+            position: sticky;
+            top: 0;
+            z-index: 10;
+        }
+
+        header h1 {
+            font-size: 26px;
+            font-weight: 800;
+            text-transform: uppercase;
+            letter-spacing: 2px;
+            /* Градиентный текст */
+            background: var(--accent-gradient);
+            background-clip: text;
+            -webkit-text-fill-color: transparent;
+        }
+
+        .nav-tabs { display: flex; gap: 25px; }
+        
+        .tab {
+            background: none; border: none;
+            color: var(--text-muted);
+            font-size: 18px; font-weight: 600;
+            cursor: pointer;
+            position: relative;
+            transition: color var(--transition-speed);
+        }
+
+        .tab:hover { color: var(--text-color); }
+        
+        .tab.active { color: #ffffff; }
+
+        /* Подчеркивание активной вкладки */
+        .tab::after {
+            content: '';
+            position: absolute;
+            bottom: -6px; left: 0;
+            width: 0%; height: 3px;
+            background: var(--accent-gradient);
+            border-radius: 3px;
+            transition: width var(--transition-speed);
+        }
+        
+        .tab.active::after { width: 100%; }
+
+        /* =========================================
+           СЕТКА И КАРТОЧКИ
+           ========================================= */
+        main { padding: 30px 40px; }
+
+        .media-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fill, minmax(220px, 1fr));
+            gap: 25px;
+        }
+
+        .media-card {
+            position: relative;
+            border-radius: var(--border-radius);
+            overflow: hidden;
+            cursor: pointer;
+            aspect-ratio: 2 / 3;
+            background-color: #000;
+            box-shadow: 0 4px 15px rgba(0, 0, 0, 0.5);
+            border: 1px solid rgba(255, 255, 255, 0.05);
+            transition: transform var(--transition-speed), box-shadow var(--transition-speed), border-color var(--transition-speed);
+        }
+
+        .media-card img {
+            width: 100%; height: 100%; object-fit: cover; display: block;
+            transition: opacity var(--transition-speed);
+        }
+
+        .media-card .overlay {
+            position: absolute; bottom: 0; left: 0; right: 0;
+            /* Цветной градиент на ховере */
+            background: linear-gradient(to top, rgba(79, 13, 117, 0.9) 0%, rgba(0,0,0,0.6) 60%, transparent 100%);
+            padding: 30px 15px 15px;
+            opacity: 0; transition: opacity var(--transition-speed);
+            display: flex; align-items: flex-end;
+        }
+
+        .media-card .overlay h3 {
+            font-size: 18px; margin: 0; text-align: center; width: 100%;
+            text-shadow: 0 2px 4px rgba(0,0,0,0.8);
+        }
+
+        .media-card:hover {
+            transform: translateY(-8px) scale(1.02); /* Плавный подъем вверх */
+            box-shadow: 0 15px 35px var(--glow-color); /* Неоновое свечение */
+            border-color: rgba(255, 255, 255, 0.2);
+            z-index: 2;
+        }
+        
+        .media-card:hover img { opacity: 0.8; }
+        .media-card:hover .overlay { opacity: 1; }
+
+        /* =========================================
+           КРАСОЧНОЕ МОДАЛЬНОЕ ОКНО (GLASSMORPHISM)
+           ========================================= */
+        .modal-overlay {
+            display: none; position: fixed; top: 0; left: 0; right: 0; bottom: 0;
+            background-color: rgba(0, 0, 0, 0.7); backdrop-filter: blur(8px);
+            z-index: 100; justify-content: center; align-items: center;
+            padding: 20px; opacity: 0; transition: opacity var(--transition-speed);
+        }
+
+        .modal-overlay.active { display: flex; opacity: 1; }
+
+        .modal-content {
+            background: var(--surface-color); 
+            backdrop-filter: blur(25px); /* Сильное размытие заднего фона */
+            border: 1px solid rgba(255,255,255,0.1);
+            border-radius: var(--border-radius);
+            max-width: 850px; width: 100%; max-height: 90vh; overflow-y: auto;
+            position: relative; box-shadow: 0 20px 50px rgba(0,0,0,0.8);
+        }
+
+        .close-btn {
+            position: absolute; top: 15px; right: 20px; font-size: 32px;
+            color: var(--text-muted); cursor: pointer; z-index: 10;
+            transition: color 0.2s, transform 0.2s;
+        }
+        .close-btn:hover { color: #ff007a; transform: scale(1.1); }
+
+        .details-layout { display: flex; flex-direction: column; }
+        @media (min-width: 600px) { .details-layout { flex-direction: row; } }
+        
+        .details-poster { flex: 0 0 320px; }
+        .details-poster img {
+            width: 100%; height: 100%; object-fit: cover;
+            border-top-left-radius: var(--border-radius);
+        }
+        @media (min-width: 600px) { .details-poster img { border-bottom-left-radius: var(--border-radius); border-top-right-radius: 0; } }
+
+        .details-info { padding: 35px; flex: 1; display: flex; flex-direction: column; }
+        .details-info h2 { font-size: 36px; margin: 0 0 15px; font-weight: 700; line-height: 1.1; }
+        
+        /* Цветные хэштеги */
+        .hashtags { margin-bottom: 25px; display: flex; flex-wrap: wrap; gap: 10px; }
+        .hashtag {
+            background: rgba(255, 0, 122, 0.15); 
+            border: 1px solid rgba(255, 0, 122, 0.3);
+            color: #ffb3d9;
+            padding: 6px 14px;
+            border-radius: 20px; font-size: 13px; font-weight: 600;
+            transition: all var(--transition-speed);
+        }
+        .hashtag:hover {
+            background: var(--accent-gradient);
+            color: white;
+            border-color: transparent;
+            box-shadow: 0 4px 10px rgba(255, 0, 122, 0.4);
+        }
+
+        .section-title {
+            font-size: 20px; color: #fff;
+            margin: 25px 0 10px; padding-bottom: 8px;
+            border-bottom: 2px solid rgba(121, 40, 202, 0.3);
+            font-weight: 600;
+        }
+        
+        #detailDesc, #detailReview {
+            color: rgba(255,255,255,0.85);
+            font-size: 15px;
+        }
+    </style>
+</head>
+<body>
+
+    <header>
+        <h1>Коллекция</h1>
+        <nav class="nav-tabs">
+            <button class="tab active" id="tab-movies" onclick="switchTab('movies')">Фильмы</button>
+            <button class="tab" id="tab-series" onclick="switchTab('series')">Сериалы</button>
+        </nav>
+    </header>
+
+    <main>
+        <div class="media-grid" id="mediaGrid"></div>
+    </main>
+
+    <!-- Модальное окно только для просмотра -->
+    <div class="modal-overlay" id="detailsModal" onclick="closeOnOverlayClick(event, 'detailsModal')">
+        <div class="modal-content details-layout">
+            <span class="close-btn" onclick="closeModal('detailsModal')">&times;</span>
+            <div class="details-poster">
+                <img id="detailPoster" src="" alt="">
+            </div>
+            <div class="details-info">
+                <h2 id="detailTitle">Название</h2>
+                <div class="hashtags" id="detailTags"></div>
+                <div id="detailDesc">Описание</div>
+                <div class="section-title">Чем мне понравилось:</div>
+                <div id="detailReview">Отзыв</div>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        // Базовые данные (если хранилище пустое)
+        const defaultMovies = [{ id: 1, title: "Интерстеллар", poster: "https://placehold.co/400x600/1a1a1a/ffffff?text=Interstellar", genres: "фантастика, драма", description: "Группа исследователей отправляется в путешествие сквозь червоточину.", review: "Визуальные эффекты и музыка." }];
+        const defaultSeries = [{ id: 101, title: "Во все тяжкие", poster: "https://placehold.co/400x600/1a1a1a/ffffff?text=Breaking+Bad", genres: "драма, криминал", description: "Учитель химии начинает производить метамфетамин.", review: "Идеальная трансформация главного героя." }];
+
+        let collections = { movies: [], series: [] };
+        let currentTab = 'movies';
+
+        document.addEventListener('DOMContentLoaded', () => {
+            initData();
+            renderGrid();
+        });
+
+        // Слушаем изменения localStorage из других вкладок (из файла admin.html)
+        window.addEventListener('storage', (event) => {
+            if (event.key === 'myMovies' || event.key === 'mySeries') {
+                initData();
+                renderGrid();
+            }
+        });
+
+        function initData() {
+            const storedMovies = localStorage.getItem('myMovies');
+            const storedSeries = localStorage.getItem('mySeries');
+            
+            collections.movies = storedMovies ? JSON.parse(storedMovies) : [...defaultMovies];
+            collections.series = storedSeries ? JSON.parse(storedSeries) : [...defaultSeries];
+            
+            if (!storedMovies) localStorage.setItem('myMovies', JSON.stringify(collections.movies));
+            if (!storedSeries) localStorage.setItem('mySeries', JSON.stringify(collections.series));
+        }
+
+        function switchTab(tabName) {
+            currentTab = tabName;
+            document.querySelectorAll('.tab').forEach(btn => btn.classList.remove('active'));
+            document.getElementById(`tab-${tabName}`).classList.add('active');
+            renderGrid();
+        }
+
+        function renderGrid() {
+            const grid = document.getElementById('mediaGrid');
+            grid.innerHTML = ''; 
+            const activeArray = [...collections[currentTab]].reverse();
+
+            activeArray.forEach(item => {
+                const card = document.createElement('div');
+                card.className = 'media-card';
+                card.onclick = () => showDetails(item.id);
+
+                card.innerHTML = `
+                    <img src="${item.poster}" alt="${item.title}" onerror="this.src='https://placehold.co/400x600/1a1a1a/e50914?text=Нет+постера'">
+                    <div class="overlay"><h3>${item.title}</h3></div>
+                `;
+                grid.appendChild(card);
+            });
+        }
+
+        function showDetails(id) {
+            const item = collections[currentTab].find(m => m.id === id);
+            if (!item) return;
+
+            document.getElementById('detailPoster').src = item.poster;
+            document.getElementById('detailTitle').textContent = item.title;
+            document.getElementById('detailDesc').textContent = item.description;
+            document.getElementById('detailReview').textContent = item.review;
+
+            const tagsContainer = document.getElementById('detailTags');
+            const tagsArray = item.genres.split(',').map(tag => tag.trim()).filter(tag => tag);
+            tagsContainer.innerHTML = tagsArray.map(tag => `<span class="hashtag">${tag.startsWith('#') ? tag : `#${tag}`}</span>`).join('');
+
+            openModal('detailsModal');
+        }
+
+        function openModal(modalId) {
+            const modal = document.getElementById(modalId);
+            modal.style.display = 'flex';
+            setTimeout(() => modal.classList.add('active'), 10);
+            document.body.style.overflow = 'hidden';
+        }
+
+        function closeModal(modalId) {
+            const modal = document.getElementById(modalId);
+            modal.classList.remove('active');
+            setTimeout(() => modal.style.display = 'none', 300);
+            document.body.style.overflow = 'auto';
+        }
+
+        function closeOnOverlayClick(event, modalId) {
+            if (event.target.id === modalId) closeModal(modalId);
+        }
+
+        document.addEventListener('keydown', (e) => {
+            if (e.key === 'Escape') {
+                const activeModal = document.querySelector('.modal-overlay.active');
+                if (activeModal) closeModal(activeModal.id);
+            }
+        });
+    </script>
+</body>
+</html>
