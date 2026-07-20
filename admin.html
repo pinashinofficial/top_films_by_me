@@ -254,7 +254,6 @@
             const val = input.value.trim();
             if (!val) return;
 
-            // Проверяем, нет ли уже такого
             const existing = Array.from(document.querySelectorAll('.cb-list')).map(cb => cb.value.toLowerCase());
             if (!existing.includes(val.toLowerCase())) {
                 const container = document.getElementById('listsContainer');
@@ -263,7 +262,6 @@
             input.value = '';
         }
 
-        // Предотвращаем отправку формы при нажатии Enter в поле "Новая подборка"
         document.getElementById('newListName').addEventListener('keypress', function(e) {
             if (e.key === 'Enter') {
                 e.preventDefault();
@@ -276,7 +274,10 @@
             document.querySelectorAll('.nav-tab').forEach(t => t.classList.remove('active'));
             document.querySelectorAll('.section').forEach(s => s.classList.remove('active'));
             
-            event.target.classList.add('active');
+            // Надежный поиск вкладки для активации
+            const tabButton = document.querySelector(`.nav-tab[onclick*="${tabId}"]`);
+            if (tabButton) tabButton.classList.add('active');
+            
             document.getElementById(tabId + '-section').classList.add('active');
         }
 
@@ -315,15 +316,12 @@
             const btn = document.getElementById('btnSubmit');
             btn.innerText = 'Сохранение...'; btn.disabled = true;
 
-            // Собираем жанры и списки из чекбоксов
             const selectedGenres = Array.from(document.querySelectorAll('.cb-genre:checked')).map(cb => cb.value).join(', ');
             const selectedLists = Array.from(document.querySelectorAll('.cb-list:checked')).map(cb => cb.value).join(', ');
             
-            // Логика ТОП-100
             const inTop100 = document.getElementById('f_inTop100').checked;
             let finalRank = null;
             if (inTop100) {
-                // Если редактируем и ранг уже был, сохраняем его. Иначе даем 999 (отправится в конец топа)
                 finalRank = (editingItem && editingItem.toprank > 0) ? editingItem.toprank : 999;
             }
 
@@ -352,8 +350,12 @@
                 cancel(); 
                 await load();
             } catch (error) {
-                console.error("Ошибка сохранения:", error);
-                alert("Ошибка при сохранении. Проверьте консоль.");
+                console.error("Полная ошибка сохранения:", error);
+                // Детальный вывод ошибки в Alert
+                alert("ОШИБКА ОТ БАЗЫ ДАННЫХ:\n" + 
+                      "Сообщение: " + (error.message || error.toString() || "нет") + "\n" + 
+                      "Детали: " + (error.details || "нет") + "\n" + 
+                      "Код: " + (error.code || "нет"));
             } finally {
                 btn.innerText = 'Сохранить запись'; 
                 btn.disabled = false;
@@ -372,7 +374,6 @@
             document.getElementById('f_desc').value = editingItem.description || '';
             document.getElementById('f_review').value = editingItem.review || '';
             
-            // Заполняем жанры
             document.querySelectorAll('.cb-genre').forEach(cb => cb.checked = false);
             if (editingItem.genres) {
                 const genresArr = editingItem.genres.split(',').map(s => s.trim());
@@ -381,7 +382,6 @@
                 });
             }
 
-            // Заполняем списки
             document.querySelectorAll('.cb-list').forEach(cb => cb.checked = false);
             if (editingItem.customlists) {
                 const listsArr = editingItem.customlists.split(',').map(s => s.trim());
@@ -390,20 +390,18 @@
                 });
             }
 
-            // Чекбокс ТОП-100
             document.getElementById('f_inTop100').checked = (editingItem.toprank && editingItem.toprank > 0);
             
             document.getElementById('formTitle').innerText = 'Редактирование записи';
             document.getElementById('btnCancel').style.display = 'block';
             window.scrollTo({ top: 0, behavior: 'smooth' });
-            switchTab('crud'); // Автоматически переходим на вкладку формы
+            switchTab('crud');
         }
 
         function cancel() {
             editingItem = null;
             document.getElementById('adminForm').reset();
             
-            // Сбрасываем чекбоксы
             document.querySelectorAll('.cb-genre, .cb-list').forEach(cb => cb.checked = false);
 
             document.getElementById('formTitle').innerText = 'Добавить новую запись';
@@ -417,8 +415,11 @@
                 if (error) throw error;
                 await load();
             } catch (error) {
-                console.error("Ошибка удаления:", error);
-                alert("Не удалось удалить запись.");
+                console.error("Полная ошибка удаления:", error);
+                alert("ОШИБКА ОТ БАЗЫ ДАННЫХ:\n" + 
+                      "Сообщение: " + (error.message || error.toString() || "нет") + "\n" + 
+                      "Детали: " + (error.details || "нет") + "\n" + 
+                      "Код: " + (error.code || "нет"));
             }
         }
         document.getElementById('btnCancel').onclick = cancel;
@@ -427,7 +428,6 @@
         let sortableInstance = null;
 
         function renderTop100() {
-            // Фильтруем только те, что в топе, и сортируем по рангу
             const topData = currentData
                 .filter(i => i.toprank && i.toprank > 0)
                 .sort((a, b) => a.toprank - b.toprank);
@@ -448,14 +448,12 @@
                 </div>
             `).join('');
 
-            // Инициализация Drag and Drop библиотеки
             if (sortableInstance) sortableInstance.destroy();
             sortableInstance = new Sortable(container, {
                 animation: 150,
                 handle: '.drag-item',
                 ghostClass: 'sortable-ghost',
                 onEnd: function () {
-                    // Обновляем визуальные цифры после перетаскивания
                     const items = document.querySelectorAll('#top100DragContainer .drag-item');
                     items.forEach((item, i) => {
                         item.querySelector('.drag-rank').innerText = i + 1;
@@ -472,7 +470,6 @@
             const items = document.querySelectorAll('#top100DragContainer .drag-item');
             const updates = [];
 
-            // Формируем массив обновлений для каждого перетянутого элемента
             items.forEach((item, index) => {
                 const id = item.getAttribute('data-id');
                 const newRank = index + 1;
@@ -482,11 +479,11 @@
             try {
                 await Promise.all(updates);
                 alert("Порядок успешно сохранен!");
-                await load(); // Перезагружаем данные
+                await load();
             } catch (error) {
                 console.error("Полная ошибка:", error);
                 alert("ОШИБКА ОТ БАЗЫ ДАННЫХ:\n" + 
-                      "Сообщение: " + (error.message || "нет") + "\n" + 
+                      "Сообщение: " + (error.message || error.toString() || "нет") + "\n" + 
                       "Детали: " + (error.details || "нет") + "\n" + 
                       "Код: " + (error.code || "нет"));
             } finally {
