@@ -46,7 +46,12 @@
             border-bottom: 1px solid rgba(255,255,255,0.05);
         }
         .burger { display: none; background: none; border: none; color: white; font-size: 24px; cursor: pointer; }
-        .page-title { font-size: 20px; font-weight: 700; letter-spacing: 0.5px; }
+        .page-title {
+            font-size: 34px; font-weight: 900; letter-spacing: 0.5px; line-height: 1;
+        }
+        @media (max-width: 768px) {
+            .page-title { font-size: 24px; }
+        }
         .sort-select {
             background: var(--surface); color: var(--text-main); border: 1px solid rgba(255,255,255,0.1);
             border-radius: 6px; padding: 8px 12px; font-size: 14px; cursor: pointer; outline: none;
@@ -171,7 +176,7 @@
         <div class="nav-item" onclick="setFilter('cartoons', this)">Мультфильмы</div>
 
         <h3>Подборки</h3>
-        <div class="nav-item" onclick="setFilter('top100', this)">⭐ ТОП 100</div>
+        <div class="nav-item" onclick="setFilter('top100', this)">ТОП 100</div>
         <div class="nav-item" onclick="setFilter('new', this)">🔥 Новинки</div>
         <div class="nav-item" onclick="setFilter('rewatch', this)">🔄 Пересматриваем любимое</div>
         
@@ -286,11 +291,11 @@
         }
 
         const FILTER_TITLES = {
-            main: '🏠 Главная',
-            movies: '🎬 Фильмы',
-            series: '📺 Сериалы',
-            cartoons: '🧸 Мультфильмы',
-            top100: '⭐ ТОП 100',
+            main: 'Главная',
+            movies: 'Фильмы',
+            series: 'Сериалы',
+            cartoons: 'Мультфильмы',
+            top100: 'ТОП 100',
             new: '🔥 Новинки',
             rewatch: '🔄 Пересматриваем любимое'
         };
