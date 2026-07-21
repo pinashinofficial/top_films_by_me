@@ -64,6 +64,14 @@
             <a class="nav-tab" href="lists.html">🗂️ Мои списки</a>
         </div>
 
+        <div class="panel" id="autoFillPanel">
+            <h2>🪄 Автопоиск постеров</h2>
+            <p style="color: var(--muted); font-size: 14px; margin: 10px 0 15px;">Найдёт постеры для фильмов, у которых поле «Ссылка на постер» пустое, и предложит выбрать подходящий вариант для каждого.</p>
+            <button type="button" id="scanBtn" onclick="scanMissingPosters()" style="background: var(--primary); color: #fff; border: none; border-radius: 8px; padding: 12px 20px; font-weight: 700; cursor: pointer; font-size: 14px;">🔍 Найти постеры для фильмов без постера</button>
+            <div id="scanProgress" style="color: var(--muted); font-size: 13px; margin-top: 12px;"></div>
+            <div id="scanResults" style="margin-top: 15px;"></div>
+        </div>
+
         <div class="panel">
             <div class="toolbar">
                 <input type="text" id="searchInput" placeholder="🔍 Поиск по названию..." oninput="applyFilters()">
@@ -93,6 +101,8 @@
         const SUPABASE_URL = 'https://ktacbvcwsyajpeacdmwt.supabase.co';
         const SUPABASE_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Imt0YWNidmN3c3lhanBlYWNkbXd0Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3ODQ1NjM4NDgsImV4cCI6MjEwMDEzOTg0OH0.OhjANu7A7Wb7GUsBjVzrvjkGJlgVsehSf6EyC1DMxR8';
         const supabaseClient = supabase.createClient(SUPABASE_URL, SUPABASE_KEY);
+
+        const TMDB_API_KEY = '3a3430d210cbf6ae4ee54b1ffc523ddd';
 
         let currentData = [];
 
@@ -185,6 +195,118 @@
                       "Детали: " + (error.details || "нет") + "\n" +
                       "Код: " + (error.code || "нет"));
             }
+        }
+
+        // --- МАССОВЫЙ АВТОПОИСК ПОСТЕРОВ ЧЕРЕЗ TMDB ---
+        async function tmdbSearch(mediaType, title, year) {
+            let url = `https://api.themoviedb.org/3/search/${mediaType}?api_key=${TMDB_API_KEY}&language=ru-RU&query=${encodeURIComponent(title)}`;
+            if (year) {
+                url += mediaType === 'tv' ? `&first_air_date_year=${year}` : `&year=${year}`;
+            }
+            const res = await fetch(url);
+            if (!res.ok) throw new Error('TMDB request failed: ' + res.status);
+            const data = await res.json();
+            return data.results || [];
+        }
+
+        async function findCandidatesFor(movie) {
+            const primaryType = movie.type === 'series' ? 'tv' : 'movie';
+            const fallbackType = primaryType === 'tv' ? 'movie' : 'tv';
+
+            let results = await tmdbSearch(primaryType, movie.title, movie.year);
+            if (results.length === 0) results = await tmdbSearch(fallbackType, movie.title, movie.year);
+            if (results.length === 0 && movie.year) {
+                results = await tmdbSearch(primaryType, movie.title, null);
+                if (results.length === 0) results = await tmdbSearch(fallbackType, movie.title, null);
+            }
+            return results.filter(r => r.poster_path).slice(0, 4);
+        }
+
+        async function scanMissingPosters() {
+            const scanBtn = document.getElementById('scanBtn');
+            const progressBox = document.getElementById('scanProgress');
+            const resultsBox = document.getElementById('scanResults');
+
+            const missing = currentData.filter(i => !i.poster || !i.poster.trim());
+
+            if (missing.length === 0) {
+                progressBox.textContent = '✅ У всех фильмов уже есть постер.';
+                resultsBox.innerHTML = '';
+                return;
+            }
+
+            scanBtn.disabled = true;
+            resultsBox.innerHTML = '';
+
+            for (let idx = 0; idx < missing.length; idx++) {
+                const movie = missing[idx];
+                progressBox.textContent = `Ищу постеры... ${idx + 1} из ${missing.length}`;
+
+                const rowId = `scanrow_${movie.id}`;
+                resultsBox.insertAdjacentHTML('beforeend', `<div class="item" id="${rowId}" style="align-items:flex-start;"><div class="item-info"><div><div class="item-title">${escapeHtml(movie.title)}${movie.year ? ' (' + movie.year + ')' : ''}</div><div class="item-meta">⏳ Ищу варианты...</div></div></div></div>`);
+
+                try {
+                    const candidates = await findCandidatesFor(movie);
+                    const row = document.getElementById(rowId);
+
+                    if (candidates.length === 0) {
+                        row.querySelector('.item-meta').innerHTML = '❌ Ничего не найдено';
+                        continue;
+                    }
+
+                    const candidatesHtml = candidates.map(c => {
+                        const posterUrl = `https://image.tmdb.org/t/p/w300${c.poster_path}`;
+                        const name = c.title || c.name || 'Без названия';
+                        const dateStr = c.release_date || c.first_air_date || '';
+                        const yearStr = dateStr ? dateStr.slice(0, 4) : '?';
+                        return `<div style="width: 90px; cursor: pointer; text-align: center;" onclick="applyFoundPoster('${movie.id}', '${posterUrl}', '${rowId}')">
+                            <img src="${posterUrl}" style="width: 90px; height: 135px; object-fit: cover; border-radius: 6px; border: 2px solid transparent;" onmouseover="this.style.borderColor='var(--primary)'" onmouseout="this.style.borderColor='transparent'">
+                            <div style="font-size: 10px; margin-top: 4px; color: #ccc;">${escapeHtml(name)} (${yearStr})</div>
+                        </div>`;
+                    }).join('');
+
+                    row.innerHTML = `
+                        <div class="item-info" style="align-items:flex-start;">
+                            <div>
+                                <div class="item-title">${escapeHtml(movie.title)}${movie.year ? ' (' + movie.year + ')' : ''}</div>
+                                <div style="display:flex; gap:10px; margin-top:8px; flex-wrap:wrap;">${candidatesHtml}</div>
+                            </div>
+                        </div>
+                        <div class="actions"><button type="button" class="btn-del" onclick="document.getElementById('${rowId}').remove()">Пропустить</button></div>
+                    `;
+                } catch (err) {
+                    console.error(err);
+                    const row = document.getElementById(rowId);
+                    if (row) row.querySelector('.item-meta').innerHTML = '⚠️ Ошибка поиска';
+                }
+            }
+
+            progressBox.textContent = `Готово. Обработано ${missing.length} фильм(ов).`;
+            scanBtn.disabled = false;
+        }
+
+        async function applyFoundPoster(movieId, posterUrl, rowId) {
+            try {
+                const { error } = await supabaseClient.from('collection').update({ poster: posterUrl }).eq('id', movieId);
+                if (error) throw error;
+
+                const movie = currentData.find(m => String(m.id) === String(movieId));
+                if (movie) movie.poster = posterUrl;
+
+                const row = document.getElementById(rowId);
+                if (row) row.innerHTML = `<div class="item-info"><img src="${posterUrl}" alt="Постер"><div class="item-title" style="color:#2ecc71;">✅ Постер сохранён</div></div>`;
+
+                applyFilters();
+            } catch (error) {
+                console.error(error);
+                alert('Не удалось сохранить постер. Подробности в консоли.');
+            }
+        }
+
+        function escapeHtml(str) {
+            const div = document.createElement('div');
+            div.textContent = str;
+            return div.innerHTML;
         }
 
         load();
