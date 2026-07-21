@@ -132,11 +132,12 @@
     </div>
 
     <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+    <!-- Общий для всех страниц админки: ключи Supabase -->
+    <script src="config.js"></script>
 
     <script>
-        const SUPABASE_URL = 'https://ktacbvcwsyajpeacdmwt.supabase.co';
-        const SUPABASE_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Imt0YWNidmN3c3lhanBlYWNkbXd0Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3ODQ1NjM4NDgsImV4cCI6MjEwMDEzOTg0OH0.OhjANu7A7Wb7GUsBjVzrvjkGJlgVsehSf6EyC1DMxR8';
-        const supabaseClient = supabase.createClient(SUPABASE_URL, SUPABASE_KEY);
+        // SUPABASE_URL, SUPABASE_KEY и supabaseClient
+        // теперь подключаются из общего config.js (см. <head> выше)
 
         let allMovies = [];      // все фильмы из collection
         let allLists = [];       // объединённые названия списков (из таблицы lists + из полей customlists)
