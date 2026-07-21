@@ -41,3 +41,43 @@ function escapeHtml(str) {
     div.textContent = str == null ? '' : String(str);
     return div.innerHTML;
 }
+
+// =====================================================================
+// ОБХОД БЛОКИРОВКИ ПОСТЕРОВ TMDB НА МОБИЛЬНЫХ СЕТЯХ
+// У некоторых мобильных операторов домен image.tmdb.org блокируется
+// (или блокируется сильнее, чем на Wi-Fi/десктопе), из-за чего постеры,
+// добавленные через автопоиск TMDB, на телефоне не грузятся.
+//
+// Раньше все TMDB-постеры сразу грузились через прокси wsrv.nl — это
+// решало проблему блокировки, но добавляло лишний прыжок (браузер →
+// wsrv.nl → TMDB → обратно) для ВСЕХ пользователей, из-за чего постеры
+// грузились заметно медленнее даже там, где блокировки нет.
+//
+// Теперь грузим напрямую с TMDB (быстрый путь для большинства), а прокси
+// подключаем только как fallback — если прямая ссылка не загрузилась.
+// =====================================================================
+
+function posterSrc(url) {
+    return url || '';
+}
+
+// Вешается через onerror="handlePosterError(this)" на <img>, у которого
+// в data-original лежит исходная ссылка на постер. Первая ошибка загрузки
+// (например, из-за блокировки на мобильной сети) — пробуем через прокси
+// wsrv.nl. Если и прокси не помог — оставляем пустой тёмный блок вместо
+// сломанной иконки картинки.
+function handlePosterError(imgEl) {
+    const original = imgEl.dataset.original || '';
+    if (!original) { imgEl.removeAttribute('onerror'); return; }
+    if (imgEl.dataset.posterStage === 'proxy') {
+        imgEl.removeAttribute('onerror');
+        imgEl.removeAttribute('src');
+        return;
+    }
+    imgEl.dataset.posterStage = 'proxy';
+    if (original.includes('image.tmdb.org')) {
+        imgEl.src = 'https://wsrv.nl/?url=' + encodeURIComponent(original.replace(/^https?:\/\//, ''));
+    } else {
+        imgEl.removeAttribute('onerror');
+    }
+}
