@@ -91,8 +91,9 @@
         
         <!-- Навигация -->
         <div class="admin-nav">
-            <div class="nav-tab active" onclick="switchTab('crud')">База и Добавление</div>
+            <div class="nav-tab active" onclick="switchTab('crud')">Добавление / Редактирование</div>
             <div class="nav-tab" onclick="switchTab('top100')">Редактор ТОП-100</div>
+            <a class="nav-tab" href="database.html" style="text-decoration: none; color: inherit; display: inline-block;">📋 Общая база</a>
         </div>
         
         <!-- Раздел 1: Управление базой -->
@@ -163,23 +164,10 @@
                     
                     <div class="row">
                         <button type="button" id="btnCancel" class="btn-cancel">Отменить</button>
+                        <button type="button" id="btnDelete" class="btn-del" style="display: none; width: 100%; padding: 15px;" onclick="deleteCurrentEditing()">🗑️ Удалить</button>
                         <button type="submit" id="btnSubmit" class="btn-main">Сохранить запись</button>
                     </div>
                 </form>
-            </div>
-            
-            <div class="panel">
-                <h2>Общая база</h2>
-                <div style="margin-bottom: 15px;">
-                    <select id="adminSortSelect" onchange="setAdminSort(this.value)" style="background: var(--input-bg, #222); color: #fff; border: 1px solid rgba(255,255,255,0.15); border-radius: 6px; padding: 8px 12px; font-size: 14px; cursor: pointer;">
-                        <option value="default">Сортировка: по умолчанию</option>
-                        <option value="rating_desc">Рейтинг: сначала высокий</option>
-                        <option value="rating_asc">Рейтинг: сначала низкий</option>
-                        <option value="year_desc">Год выхода: сначала новые</option>
-                        <option value="year_asc">Год выхода: сначала старые</option>
-                    </select>
-                </div>
-                <div id="listContainer" style="text-align: center; color: var(--muted);">Загрузка...</div>
             </div>
         </div>
 
@@ -213,10 +201,9 @@
 
         let currentData = [];
         let editingItem = null;
-        let currentAdminSort = 'default';
 
         // Базовые жанры
-        const STANDARD_GENRES = ['Боевик', 'Комедия', 'Драма', 'Фантастика', 'Триллер', 'Ужасы', 'Мелодрама', 'Детектив', 'Приключения', 'Фэнтези', 'Аниме', 'Документальный', 'Спорт'];
+        const STANDARD_GENRES = ['Боевик', 'Комедия', 'Драма', 'Фантастика', 'Триллер', 'Ужасы', 'Мелодрама', 'Детектив', 'Приключения', 'Фэнтези', 'Аниме', 'Документальный', 'Спорт', 'Криминал', 'Мюзикл'];
 
         async function load() {
             try {
@@ -228,13 +215,17 @@
                 if (error) throw error;
                 currentData = data || [];
                 
-                renderList();
                 renderTop100();
                 renderGenres();
                 renderCustomLists();
+
+                // Если пришли по ссылке "Редактировать" со страницы database.html
+                const params = new URLSearchParams(window.location.search);
+                const editId = params.get('edit');
+                if (editId) edit(editId);
             } catch (error) {
                 console.error(error);
-                document.getElementById('listContainer').innerHTML = '<p style="color:var(--primary);">Ошибка подключения к БД.</p>';
+                alert("Ошибка подключения к БД. Подробности в консоли.");
             }
         }
 
@@ -304,51 +295,7 @@
             document.getElementById(tabId + '-section').classList.add('active');
         }
 
-        // --- ОТРИСОВКА БАЗЫ ---
-        function setAdminSort(sortType) {
-            currentAdminSort = sortType;
-            renderList();
-        }
-
-        function renderList() {
-            if (currentData.length === 0) {
-                document.getElementById('listContainer').innerHTML = 'База данных пуста.';
-                return;
-            }
-
-            let sortedData = [...currentData];
-            if (currentAdminSort === 'rating_desc') {
-                sortedData.sort((a, b) => (b.rating ?? -1) - (a.rating ?? -1));
-            } else if (currentAdminSort === 'rating_asc') {
-                sortedData.sort((a, b) => (a.rating ?? 999) - (b.rating ?? 999));
-            } else if (currentAdminSort === 'year_desc') {
-                sortedData.sort((a, b) => (b.year ?? 0) - (a.year ?? 0));
-            } else if (currentAdminSort === 'year_asc') {
-                sortedData.sort((a, b) => (a.year ?? 9999) - (b.year ?? 9999));
-            }
-
-            const html = sortedData.map(i => {
-                const typeName = i.type === 'movies' ? 'Фильм' : i.type === 'series' ? 'Сериал' : 'Мультфильм';
-                const isTop = (i.toprank && i.toprank > 0) ? `🏆 Топ-${i.toprank}` : '';
-                const isRewatch = i.rewatch ? `🔄 Пересматриваем` : '';
-                return `
-                <div class="item">
-                    <div class="item-info">
-                        <img src="${i.poster || ''}" alt="Постер">
-                        <div>
-                            <div class="item-title">${i.title}</div>
-                            <div class="item-meta">${typeName} ${isTop ? '• ' + isTop : ''} ${isRewatch ? '• ' + isRewatch : ''} <br> Списки: ${i.customlists || '-'}</div>
-                        </div>
-                    </div>
-                    <div class="actions">
-                        <button type="button" class="btn-edit" onclick="edit('${i.id}')">✏️</button>
-                        <button type="button" class="btn-del" onclick="del('${i.id}')">🗑️</button>
-                    </div>
-                </div>
-                `;
-            }).join('');
-            document.getElementById('listContainer').innerHTML = html;
-        }
+        // --- ОТРИСОВКА БАЗЫ (перенесена на database.html) ---
 
         // --- СОХРАНЕНИЕ / ДОБАВЛЕНИЕ (CRUD) ---
         document.getElementById('adminForm').onsubmit = async (e) => {
@@ -436,6 +383,7 @@
             
             document.getElementById('formTitle').innerText = 'Редактирование записи';
             document.getElementById('btnCancel').style.display = 'block';
+            document.getElementById('btnDelete').style.display = 'block';
             window.scrollTo({ top: 0, behavior: 'smooth' });
             switchTab('crud');
         }
@@ -448,14 +396,22 @@
 
             document.getElementById('formTitle').innerText = 'Добавить новую запись';
             document.getElementById('btnCancel').style.display = 'none';
+            document.getElementById('btnDelete').style.display = 'none';
+        }
+
+        async function deleteCurrentEditing() {
+            if (!editingItem) return;
+            const success = await del(editingItem.id);
+            if (success) cancel();
         }
 
         async function del(id) {
-            if(!confirm('Точно удалить этот фильм?')) return;
+            if(!confirm('Точно удалить этот фильм?')) return false;
             try {
                 const { error } = await supabaseClient.from('collection').delete().eq('id', id);
                 if (error) throw error;
                 await load();
+                return true;
             } catch (error) {
                 console.error("Полная ошибка удаления:", error);
                 alert("ОШИБКА ОТ БАЗЫ ДАННЫХ:\n" + 
