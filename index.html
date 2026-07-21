@@ -463,18 +463,25 @@
         function openModal(id) {
             const item = allData.find(i => String(i.id) === String(id));
             if (!item) return;
-
+        
             const typeName = item.type === 'movies' ? 'Фильм' : item.type === 'series' ? 'Сериал' : 'Мультфильм';
             
-            // Разбиваем жанры на отдельные теги для красивого отображения
             let genresHtml = '';
             if (item.genres) {
                 genresHtml = item.genres.split(',').map(g => `<span class="tag">${g.trim()}</span>`).join('');
             }
             
+            // --- ПРЕОБРАЗОВАНИЕ ШОРТКОДОВ В АДАПТИВНЫЙ HTML ---
+            // CSS-свойство max-width: 100% и height: auto гарантируют адаптивность под любые экраны
+            const imgStyle = 'max-width: 100%; height: auto; border-radius: 8px; margin: 15px 0; display: block; box-shadow: 0 5px 15px rgba(0,0,0,0.5);';
+            
+            let formattedDesc = (item.description || '').replace(/\[img\](.*?)\[\/img\]/gi, `<img src="$1" style="${imgStyle}" alt="Иллюстрация">`);
+            let formattedReview = (item.review || '').replace(/\[img\](.*?)\[\/img\]/gi, `<img src="$1" style="${imgStyle}" alt="Иллюстрация">`);
+            // --------------------------------------------------
+        
             document.getElementById('modalBody').innerHTML = `
                 <div class="details-poster">
-                    <img src="${posterSrc(item.poster)}" data-original="${escapeAttr(item.poster)}" onerror="handlePosterError(this)" alt="Постер">
+                    <img src="${item.poster}" alt="Постер">
                 </div>
                 <div class="details-info">
                     <div class="details-title">${item.title}</div>
@@ -487,12 +494,12 @@
                     ${item.description ? `
                     <div class="details-section">
                         <h4>Описание</h4>
-                        <p>${item.description}</p>
+                        <p style="white-space: pre-wrap; line-height: 1.6;">${formattedDesc}</p>
                     </div>` : ''}
                     ${item.review ? `
                     <div class="details-section">
                         <h4>Мой отзыв</h4>
-                        <p>${item.review}</p>
+                        <p style="white-space: pre-wrap; line-height: 1.6;">${formattedReview}</p>
                     </div>` : ''}
                 </div>
             `;
