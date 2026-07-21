@@ -256,7 +256,7 @@
                     }
 
                     const candidatesHtml = candidates.map(c => {
-                        const posterUrl = `https://image.tmdb.org/t/p/w300${c.poster_path}`;
+                        const posterUrl = `https://image.tmdb.org/t/p/w500${c.poster_path}`;
                         const name = c.title || c.name || 'Без названия';
                         const dateStr = c.release_date || c.first_air_date || '';
                         const yearStr = dateStr ? dateStr.slice(0, 4) : '?';
