@@ -376,13 +376,10 @@
             } else if (currentFilter === 'top100') {
                 filtered = filtered.filter(i => i.toprank && i.toprank > 0).sort((a, b) => a.toprank - b.toprank).slice(0, 100);
             } else if (currentFilter === 'new') {
-                const sevenDaysAgo = new Date();
-                sevenDaysAgo.setDate(sevenDaysAgo.getDate() - 7);
-                filtered = filtered.filter(i => {
-                    if (!i.created_at) return false;
-                    const itemDate = new Date(i.created_at);
-                    return !isNaN(itemDate) && itemDate >= sevenDaysAgo;
-                });
+                filtered = [...filtered]
+                    .filter(i => i.created_at && !isNaN(new Date(i.created_at)))
+                    .sort((a, b) => new Date(b.created_at) - new Date(a.created_at))
+                    .slice(0, 12);
             } else if (currentFilter === 'rewatch') {
                 filtered = filtered.filter(i => i.rewatch === true);
             } else {
