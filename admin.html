@@ -164,8 +164,19 @@
                         <input type="checkbox" id="f_rewatch">
                         Добавить в подборку «Пересматриваем любимое»
                     </label>
-
+                    
+                    <!-- Описание с кнопкой вставки картинки -->
+                    <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 6px;">
+                        <label style="font-size: 13px; color: var(--muted); font-weight: 600; text-transform: uppercase;">Описание сюжета</label>
+                        <button type="button" onclick="insertImageTag('f_desc')" style="background: rgba(255,255,255,0.08); border: 1px solid rgba(255,255,255,0.1); color: #fff; padding: 4px 10px; font-size: 12px; border-radius: 6px; cursor: pointer; width: auto;">🖼️ Вставить картинку</button>
+                    </div>
                     <textarea id="f_desc" placeholder="Описание сюжета"></textarea>
+
+                    <!-- Отзыв с кнопкой вставки картинки -->
+                    <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 6px; margin-top: 10px;">
+                        <label style="font-size: 13px; color: var(--muted); font-weight: 600; text-transform: uppercase;">Личный отзыв</label>
+                        <button type="button" onclick="insertImageTag('f_review')" style="background: rgba(255,255,255,0.08); border: 1px solid rgba(255,255,255,0.1); color: #fff; padding: 4px 10px; font-size: 12px; border-radius: 6px; cursor: pointer; width: auto;">🖼️ Вставить картинку</button>
+                    </div>
                     <textarea id="f_review" placeholder="Личный отзыв"></textarea>
                     
                     <div class="row">
@@ -237,6 +248,22 @@
             }
         }
 
+
+        function insertImageTag(fieldId) {
+            const textarea = document.getElementById(fieldId);
+            const url = prompt('Введите прямую ссылку на картинку:');
+            if (!url) return;
+        
+            const tag = `[img]${url.trim()}[/img]`;
+            const start = textarea.selectionStart;
+            const end = textarea.selectionEnd;
+            const text = textarea.value;
+        
+            textarea.value = text.substring(0, start) + tag + text.substring(end);
+            textarea.focus();
+            textarea.setSelectionRange(start + tag.length, start + tag.length);
+        }
+        
         // --- ЛОГИКА ТЕГОВ (Жанры и Списки) ---
         function renderGenres() {
             const container = document.getElementById('genresContainer');
