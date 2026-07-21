@@ -290,7 +290,7 @@
             return `
             <div class="item">
                 <div class="item-info">
-                    <img src="${m.poster || ''}" alt="Постер">
+                    <img src="${posterSrc(m.poster || '')}" data-original="${escapeHtml(m.poster || '')}" onerror="handlePosterError(this)" alt="Постер" loading="lazy" decoding="async">
                     <div>
                         <div class="item-title">${escapeHtml(m.title || '')}</div>
                         <div class="item-meta">${meta}</div>
@@ -454,6 +454,29 @@
         }
         function escapeAttr(str) {
             return String(str).replace(/'/g, "\\'");
+        }
+
+        // Обход блокировки постеров TMDB на мобильных сетях — см. подробный
+        // комментарий в tmdb-helper.js. Здесь функция продублирована, т.к.
+        // эта страница не подключает tmdb-helper.js. Грузим напрямую
+        // (быстрый путь), прокси wsrv.nl — только как fallback при ошибке.
+        function posterSrc(url) {
+            return url || '';
+        }
+        function handlePosterError(imgEl) {
+            const original = imgEl.dataset.original || '';
+            if (!original) { imgEl.removeAttribute('onerror'); return; }
+            if (imgEl.dataset.posterStage === 'proxy') {
+                imgEl.removeAttribute('onerror');
+                imgEl.removeAttribute('src');
+                return;
+            }
+            imgEl.dataset.posterStage = 'proxy';
+            if (original.includes('image.tmdb.org')) {
+                imgEl.src = 'https://wsrv.nl/?url=' + encodeURIComponent(original.replace(/^https?:\/\//, ''));
+            } else {
+                imgEl.removeAttribute('onerror');
+            }
         }
     </script>
 </body>
