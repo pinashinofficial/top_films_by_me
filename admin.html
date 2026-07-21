@@ -170,6 +170,15 @@
             
             <div class="panel">
                 <h2>Общая база</h2>
+                <div style="margin-bottom: 15px;">
+                    <select id="adminSortSelect" onchange="setAdminSort(this.value)" style="background: var(--input-bg, #222); color: #fff; border: 1px solid rgba(255,255,255,0.15); border-radius: 6px; padding: 8px 12px; font-size: 14px; cursor: pointer;">
+                        <option value="default">Сортировка: по умолчанию</option>
+                        <option value="rating_desc">Рейтинг: сначала высокий</option>
+                        <option value="rating_asc">Рейтинг: сначала низкий</option>
+                        <option value="year_desc">Год выхода: сначала новые</option>
+                        <option value="year_asc">Год выхода: сначала старые</option>
+                    </select>
+                </div>
                 <div id="listContainer" style="text-align: center; color: var(--muted);">Загрузка...</div>
             </div>
         </div>
@@ -204,9 +213,10 @@
 
         let currentData = [];
         let editingItem = null;
+        let currentAdminSort = 'default';
 
         // Базовые жанры
-        const STANDARD_GENRES = ['Боевик', 'Комедия', 'Драма', 'Фантастика', 'Триллер', 'Ужасы', 'Мелодрама', 'Детектив', 'Приключения', 'Фэнтези', 'Криминал', 'Документальный', 'Спорт', 'Биография', 'Семейный'];
+        const STANDARD_GENRES = ['Боевик', 'Комедия', 'Драма', 'Фантастика', 'Триллер', 'Ужасы', 'Мелодрама', 'Детектив', 'Приключения', 'Фэнтези', 'Аниме', 'Документальный', 'Спорт'];
 
         async function load() {
             try {
@@ -295,13 +305,29 @@
         }
 
         // --- ОТРИСОВКА БАЗЫ ---
+        function setAdminSort(sortType) {
+            currentAdminSort = sortType;
+            renderList();
+        }
+
         function renderList() {
             if (currentData.length === 0) {
                 document.getElementById('listContainer').innerHTML = 'База данных пуста.';
                 return;
             }
 
-            const html = currentData.map(i => {
+            let sortedData = [...currentData];
+            if (currentAdminSort === 'rating_desc') {
+                sortedData.sort((a, b) => (b.rating ?? -1) - (a.rating ?? -1));
+            } else if (currentAdminSort === 'rating_asc') {
+                sortedData.sort((a, b) => (a.rating ?? 999) - (b.rating ?? 999));
+            } else if (currentAdminSort === 'year_desc') {
+                sortedData.sort((a, b) => (b.year ?? 0) - (a.year ?? 0));
+            } else if (currentAdminSort === 'year_asc') {
+                sortedData.sort((a, b) => (a.year ?? 9999) - (b.year ?? 9999));
+            }
+
+            const html = sortedData.map(i => {
                 const typeName = i.type === 'movies' ? 'Фильм' : i.type === 'series' ? 'Сериал' : 'Мультфильм';
                 const isTop = (i.toprank && i.toprank > 0) ? `🏆 Топ-${i.toprank}` : '';
                 const isRewatch = i.rewatch ? `🔄 Пересматриваем` : '';
