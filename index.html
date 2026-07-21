@@ -66,6 +66,39 @@
         /* Пустое состояние */
         .empty-state { text-align: center; color: var(--text-muted); grid-column: 1 / -1; padding: 50px 0; font-size: 18px; }
 
+        /* ТОП 100 — список по одному фильму в строку */
+        .top100-list { display: flex; flex-direction: column; gap: 14px; }
+        .top100-row {
+            display: flex; align-items: center; gap: 24px;
+            background: var(--surface); border: 1px solid rgba(255,255,255,0.05);
+            border-radius: 12px; padding: 14px 24px; cursor: pointer;
+            transition: transform 0.25s, box-shadow 0.25s, background 0.25s;
+        }
+        .top100-row:hover { background: #262626; transform: translateX(6px); box-shadow: 0 10px 25px rgba(0,0,0,0.45); }
+
+        .top100-rank {
+            flex: 0 0 80px; text-align: center; font-size: 42px; font-weight: 900;
+            font-style: italic; color: #3a3a3a; -webkit-text-stroke: 1px rgba(255,255,255,0.12);
+            line-height: 1;
+        }
+        .top100-rank.gold   { background: linear-gradient(180deg, #ffe98a, #d4a017); -webkit-background-clip: text; -webkit-text-fill-color: transparent; text-shadow: 0 2px 12px rgba(212,160,23,0.4); -webkit-text-stroke: 0; }
+        .top100-rank.silver { background: linear-gradient(180deg, #f2f2f2, #a8a8a8); -webkit-background-clip: text; -webkit-text-fill-color: transparent; text-shadow: 0 2px 12px rgba(168,168,168,0.35); -webkit-text-stroke: 0; }
+        .top100-rank.bronze { background: linear-gradient(180deg, #e3a765, #a35d2d); -webkit-background-clip: text; -webkit-text-fill-color: transparent; text-shadow: 0 2px 12px rgba(163,93,45,0.35); -webkit-text-stroke: 0; }
+
+        .top100-poster { flex: 0 0 70px; width: 70px; height: 100px; object-fit: cover; border-radius: 8px; background: #000; }
+        .top100-info { flex: 1; min-width: 0; }
+        .top100-title { font-size: 19px; font-weight: 700; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+        .top100-meta { font-size: 13px; color: var(--text-muted); margin-top: 8px; display: flex; gap: 14px; flex-wrap: wrap; align-items: center; }
+        .top100-meta .rating { color: #f5c518; font-weight: bold; font-size: 14px; }
+
+        @media (max-width: 768px) {
+            .top100-row { gap: 14px; padding: 10px 14px; }
+            .top100-rank { flex-basis: 44px; font-size: 26px; }
+            .top100-poster { flex-basis: 50px; width: 50px; height: 74px; }
+            .top100-title { font-size: 15px; }
+            .top100-meta { font-size: 11px; gap: 8px; }
+        }
+
         /* Модальное окно */
         .modal-overlay {
             position: fixed; top: 0; left: 0; width: 100%; height: 100%;
@@ -290,25 +323,53 @@
             }
 
             if (filtered.length === 0) {
+                grid.className = 'grid';
                 grid.innerHTML = '<div class="empty-state">В этой категории пока ничего нет.</div>';
                 return;
             }
 
-            grid.innerHTML = filtered.map(item => {
-                const typeName = item.type === 'movies' ? 'Фильм' : item.type === 'series' ? 'Сериал' : 'Мультфильм';
-                return `
-                <div class="card" onclick="openModal('${item.id}')">
-                    <img src="${item.poster}" alt="Постер">
-                    <div class="card-info">
-                        <div class="card-title">${item.title}</div>
-                        <div class="card-meta">
-                            <span>${item.year} • ${typeName}</span>
-                            <span class="rating">★ ${item.rating || '-'}</span>
-                        </div>
+            if (currentFilter === 'top100') {
+                grid.className = 'top100-list';
+                grid.innerHTML = filtered.map(item => renderTop100Row(item)).join('');
+            } else {
+                grid.className = 'grid';
+                grid.innerHTML = filtered.map(item => renderCard(item)).join('');
+            }
+        }
+
+        function renderCard(item) {
+            const typeName = item.type === 'movies' ? 'Фильм' : item.type === 'series' ? 'Сериал' : 'Мультфильм';
+            return `
+            <div class="card" onclick="openModal('${item.id}')">
+                <img src="${item.poster}" alt="Постер">
+                <div class="card-info">
+                    <div class="card-title">${item.title}</div>
+                    <div class="card-meta">
+                        <span>${item.year} • ${typeName}</span>
+                        <span class="rating">★ ${item.rating || '-'}</span>
                     </div>
                 </div>
-                `;
-            }).join('');
+            </div>
+            `;
+        }
+
+        function renderTop100Row(item) {
+            const typeName = item.type === 'movies' ? 'Фильм' : item.type === 'series' ? 'Сериал' : 'Мультфильм';
+            const rank = item.toprank;
+            const rankClass = rank === 1 ? 'gold' : rank === 2 ? 'silver' : rank === 3 ? 'bronze' : '';
+            return `
+            <div class="top100-row" onclick="openModal('${item.id}')">
+                <div class="top100-rank ${rankClass}">${rank}</div>
+                <img class="top100-poster" src="${item.poster}" alt="Постер">
+                <div class="top100-info">
+                    <div class="top100-title">${item.title}</div>
+                    <div class="top100-meta">
+                        <span>${item.year} • ${typeName}</span>
+                        <span class="rating">★ ${item.rating || '-'}</span>
+                    </div>
+                </div>
+            </div>
+            `;
         }
 
         function openModal(id) {
