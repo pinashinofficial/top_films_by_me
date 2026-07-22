@@ -243,6 +243,7 @@
         <h3>Подборки</h3>
         <div class="nav-item" data-filter="top100" onclick="setFilter('top100', this)">ТОП 100</div>
         <div class="nav-item" data-filter="new" onclick="setFilter('new', this)">Новинки</div>
+        <div class="nav-item" data-filter="recent" onclick="setFilter('recent', this)">Недавно добавлено</div>
         <div class="nav-item" data-filter="rewatch" onclick="setFilter('rewatch', this)">Пересматриваем любимое</div>
         
         <h3>Мои списки</h3>
@@ -368,6 +369,7 @@
             cartoons: 'Мультфильмы',
             top100: 'ТОП 100',
             new: '🔥 Новинки',
+            recent: '⏱️ Недавно добавлено',
             rewatch: '🔄 Пересматриваем любимое'
         };
 
@@ -465,6 +467,11 @@
             } else if (currentFilter === 'top100') {
                 filtered = filtered.filter(i => i.toprank && i.toprank > 0).sort((a, b) => a.toprank - b.toprank).slice(0, 100);
             } else if (currentFilter === 'new') {
+                // Новинки кино: фильтруем по текущему году (динамически берет год из системы)
+                const currentYear = new Date().getFullYear(); 
+                filtered = filtered.filter(i => i.year === currentYear);
+            } else if (currentFilter === 'recent') {
+                // Недавно добавленные на сайт: последние 12 записей по дате создания
                 filtered = [...filtered]
                     .filter(i => i.created_at && !isNaN(new Date(i.created_at)))
                     .sort((a, b) => new Date(b.created_at) - new Date(a.created_at))
@@ -546,13 +553,18 @@
 
             let anySection = false;
 
-            // Новинки — 6 последних добавленных
+            // Недавно добавлено — 6 последних загруженных на сайт фильмов
             const recent = [...allData]
                 .filter(i => i.created_at && !isNaN(new Date(i.created_at)))
                 .sort((a, b) => new Date(b.created_at) - new Date(a.created_at))
                 .slice(0, 6);
-            if (recent.length) { html += renderHomeSection('Новинки', recent, 'new'); anySection = true; }
+            if (recent.length) { html += renderHomeSection('Недавно добавлено', recent, 'recent'); anySection = true; }
 
+            // Новинки кино — 6 фильмов, вышедших в текущем году
+            const currentYear = new Date().getFullYear();
+            const newReleases = allData.filter(i => i.year === currentYear).slice(0, 6);
+            if (newReleases.length) { html += renderHomeSection('Новинки', newReleases, 'new'); anySection = true; }
+            
             // ТОП 100 — первые 6 по рангу
             const top = [...allData]
                 .filter(i => i.toprank && i.toprank > 0)
