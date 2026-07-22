@@ -560,30 +560,30 @@
 
             let anySection = false;
 
-            // Недавно добавлено — 6 последних загруженных на сайт фильмов
+            // Недавно добавлено — 7 последних загруженных на сайт фильмов
             const recent = [...allData]
                 .filter(i => i.created_at && !isNaN(new Date(i.created_at)))
                 .sort((a, b) => new Date(b.created_at) - new Date(a.created_at))
-                .slice(0, 6);
+                .slice(0, 7);
             if (recent.length) { html += renderHomeSection('Недавно добавлено', recent, 'recent'); anySection = true; }
 
-            // Новинки кино — 6 фильмов, вышедших в текущем году
+            // Новинки кино — 7 фильмов, вышедших в текущем году
             const currentYear = new Date().getFullYear();
-            const newReleases = allData.filter(i => i.year === currentYear).slice(0, 6);
+            const newReleases = allData.filter(i => i.year === currentYear).slice(0, 7);
             if (newReleases.length) { html += renderHomeSection('Новинки', newReleases, 'new'); anySection = true; }
             
-            // ТОП 100 — первые 6 по рангу
+            // ТОП 100 — первые 7 по рангу
             const top = [...allData]
                 .filter(i => i.toprank && i.toprank > 0)
                 .sort((a, b) => a.toprank - b.toprank)
-                .slice(0, 6);
+                .slice(0, 7);
             if (top.length) { html += renderHomeSection('ТОП 100', top, 'top100'); anySection = true; }
 
             // Пересматриваем любимое
             const rewatch = allData.filter(i => i.rewatch === true).slice(0, 6);
             if (rewatch.length) { html += renderHomeSection('Пересматриваем любимое', rewatch, 'rewatch'); anySection = true; }
 
-            // Кастомные списки — по 6 фильмов из каждого
+            // Кастомные списки — по 7 фильмов из каждого
             const listSet = new Set();
             allData.forEach(item => {
                 if (item.customlists) {
@@ -597,7 +597,7 @@
                 const items = allData.filter(i => {
                     if (!i.customlists) return false;
                     return i.customlists.split(',').map(l => l.trim()).includes(listName);
-                }).slice(0, 6);
+                }).slice(0, 7);
                 if (items.length) { html += renderHomeSection(listName, items, listName); anySection = true; }
             });
 
