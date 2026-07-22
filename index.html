@@ -442,11 +442,6 @@
             ).join('');
         }
 
-            const container = document.getElementById('dynamicLists');
-            container.innerHTML = Array.from(listSet).map(listName => 
-                `<div class="nav-item" data-filter="${escapeAttr(listName)}" onclick="setFilter('${listName.replace(/'/g, "\\'")}', this)">📌 ${listName}</div>`
-            ).join('');
-        }
 
         function render() {
             const grid = document.getElementById('contentGrid');
