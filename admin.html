@@ -525,13 +525,15 @@
             }
         }
 
-        // Ищет трейлер на YouTube для конкретного id/типа TMDB (сначала на русском, потом на английском)
+        // Ищет трейлер на YouTube для конкретного id/типа TMDB (сначала на русском, потом на английском).
+        // Дополнительно проверяет, что найденный ролик реально доступен на YouTube
+        // (а не удалён/закрыт — TMDB такие ссылки не отслеживает).
         async function findTrailerForTmdbItem(tmdbId, mediaType) {
             let videos = await tmdbFetchVideos(tmdbId, mediaType, 'ru-RU');
-            let trailer = pickBestTrailer(videos);
+            let trailer = await pickBestAvailableTrailer(videos);
             if (!trailer) {
                 videos = await tmdbFetchVideos(tmdbId, mediaType, 'en-US');
-                trailer = pickBestTrailer(videos);
+                trailer = await pickBestAvailableTrailer(videos);
             }
             return trailer;
         }
