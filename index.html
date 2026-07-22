@@ -75,6 +75,40 @@
         .card-meta { font-size: 12px; color: var(--text-muted); margin-top: 5px; display: flex; justify-content: space-between; }
         .rating { color: #f5c518; font-weight: bold; }
 
+        /* Кнопка "Трейлер" поверх постера — полупрозрачная, проявляется при наведении */
+        .card-trailer-btn {
+            position: absolute; right: 10px; bottom: 82px; width: 34px; height: 34px; border-radius: 50%;
+            background: rgba(0,0,0,0.65); color: #fff; display: flex; align-items: center; justify-content: center;
+            font-size: 13px; padding-left: 2px; opacity: 0; transition: opacity 0.2s, background 0.2s, transform 0.2s;
+            cursor: pointer; z-index: 3;
+        }
+        .card:hover .card-trailer-btn { opacity: 1; }
+        .card-trailer-btn:hover { background: var(--primary); transform: scale(1.1); }
+
+        /* Всплывающее окошко с трейлером */
+        .trailer-overlay {
+            position: fixed; inset: 0; background: rgba(0,0,0,0.92);
+            display: none; justify-content: center; align-items: center;
+            z-index: 1100; padding: 20px; opacity: 0; transition: opacity 0.25s;
+        }
+        .trailer-overlay.active { display: flex; opacity: 1; }
+        .trailer-frame {
+            width: 100%; max-width: 900px; aspect-ratio: 16 / 9; background: #000;
+            border-radius: 8px; overflow: hidden; box-shadow: 0 20px 60px rgba(0,0,0,0.8);
+        }
+        .trailer-frame iframe { width: 100%; height: 100%; border: 0; display: block; }
+        .trailer-btn-inline {
+            background: var(--primary); color: #fff; border: none; border-radius: 6px;
+            padding: 8px 16px; font-size: 14px; font-weight: 700; cursor: pointer; display: inline-flex;
+            align-items: center; gap: 8px; margin-bottom: 20px; transition: 0.2s;
+        }
+        .trailer-btn-inline:hover { background: #c40812; }
+
+        @media (max-width: 768px) {
+            /* На тач-устройствах ховера нет — кнопка трейлера видна всегда, но компактнее */
+            .card-trailer-btn { opacity: 1; width: 28px; height: 28px; font-size: 11px; right: 6px; bottom: 66px; }
+        }
+
         /* Пустое состояние */
         .empty-state { text-align: center; color: var(--text-muted); grid-column: 1 / -1; padding: 50px 0; font-size: 18px; }
 
@@ -249,6 +283,12 @@
             <button class="modal-close" onclick="closeModal()">&times;</button>
             <div class="modal-body" id="modalBody"></div>
         </div>
+    </div>
+
+    <!-- Окошко с трейлером -->
+    <div class="trailer-overlay" id="trailerOverlay" onclick="closeTrailer(event)">
+        <button class="modal-close" onclick="closeTrailer()">&times;</button>
+        <div class="trailer-frame" id="trailerFrame"></div>
     </div>
 
     <!-- Библиотека Supabase -->
@@ -562,9 +602,11 @@
 
         function renderCard(item) {
             const typeName = item.type === 'movies' ? 'Фильм' : item.type === 'series' ? 'Сериал' : 'Мультфильм';
+            const trailerBtn = item.trailer ? `<div class="card-trailer-btn" onclick="openTrailer('${escapeAttr(item.trailer)}', event)" title="Смотреть трейлер">▶</div>` : '';
             return `
             <div class="card" onclick="openModal('${item.id}')">
                 <img src="${posterSrc(item.poster)}" data-original="${escapeAttr(item.poster)}" onerror="handlePosterError(this)" alt="Постер" loading="lazy" decoding="async">
+                ${trailerBtn}
                 <div class="card-info">
                     <div class="card-title">${item.title}</div>
                     <div class="card-meta">
@@ -580,6 +622,7 @@
             const typeName = item.type === 'movies' ? 'Фильм' : item.type === 'series' ? 'Сериал' : 'Мультфильм';
             const rank = item.toprank;
             const rankClass = rank === 1 ? 'gold' : rank === 2 ? 'silver' : rank === 3 ? 'bronze' : '';
+            const trailerLink = item.trailer ? `<span class="see-all" onclick="openTrailer('${escapeAttr(item.trailer)}', event)">▶ Трейлер</span>` : '';
             return `
             <div class="top100-row" onclick="openModal('${item.id}')">
                 <div class="top100-rank ${rankClass}">${rank}</div>
@@ -589,6 +632,7 @@
                     <div class="top100-meta">
                         <span>${item.year} • ${typeName}</span>
                         <span class="rating">★ ${item.rating || '-'}</span>
+                        ${trailerLink}
                     </div>
                 </div>
             </div>
@@ -626,6 +670,7 @@
                         <span class="tag" style="color: #f5c518;">★ ${item.rating || '-'}</span>
                         ${genresHtml}
                     </div>
+                    ${item.trailer ? `<button type="button" class="trailer-btn-inline" onclick="openTrailer('${escapeAttr(item.trailer)}', event)">▶ Смотреть трейлер</button>` : ''}
                     ${item.description ? `
                     <div class="details-section">
                         <h4>Описание</h4>
@@ -653,6 +698,43 @@
                 overlay.style.display = 'none';
                 document.body.style.overflow = ''; 
             }, 300);
+        }
+
+        // ===== Окошко с трейлером =====
+
+        // Достаёт ID видео из разных форматов ссылок YouTube (или принимает уже готовый ID)
+        function extractYouTubeId(url) {
+            if (!url) return null;
+            const trimmed = url.trim();
+            const m = trimmed.match(/(?:youtu\.be\/|youtube\.com\/(?:watch\?v=|embed\/|shorts\/))([\w-]{6,})/);
+            if (m) return m[1];
+            if (/^[\w-]{6,}$/.test(trimmed)) return trimmed;
+            return null;
+        }
+
+        function openTrailer(url, event) {
+            if (event) event.stopPropagation();
+            const id = extractYouTubeId(url);
+            if (!id) return;
+
+            document.getElementById('trailerFrame').innerHTML =
+                `<iframe src="https://www.youtube.com/embed/${id}?autoplay=1&rel=0" title="Трейлер" allow="autoplay; encrypted-media; picture-in-picture" allowfullscreen></iframe>`;
+
+            const overlay = document.getElementById('trailerOverlay');
+            overlay.style.display = 'flex';
+            setTimeout(() => overlay.classList.add('active'), 10);
+            document.body.style.overflow = 'hidden';
+        }
+
+        function closeTrailer(event) {
+            if (event && event.target.id !== 'trailerOverlay' && event.target.className !== 'modal-close') return;
+            const overlay = document.getElementById('trailerOverlay');
+            overlay.classList.remove('active');
+            setTimeout(() => {
+                overlay.style.display = 'none';
+                document.getElementById('trailerFrame').innerHTML = ''; // останавливаем видео при закрытии
+                document.body.style.overflow = '';
+            }, 250);
         }
     </script>
 </body>
