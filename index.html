@@ -389,6 +389,19 @@
         function getTypeName(type) {
             return TYPE_NAMES[type] || 'Неизвестно';
         }
+
+        function getUniqueCustomLists() {
+            const listSet = new Set();
+            allData.forEach(item => {
+                if (item.customlists) {
+                    item.customlists.split(',').forEach(l => {
+                        const cleanName = l.trim();
+                        if (cleanName) listSet.add(cleanName);
+                    });
+                }
+            });
+            return Array.from(listSet); // Сразу отдаем чистый массив
+        }
         
         document.addEventListener('DOMContentLoaded', init);
 
@@ -446,15 +459,13 @@
         }
 
         function generateCustomLists() {
-            const listSet = new Set();
-            allData.forEach(item => {
-                if(item.customlists) {
-                    item.customlists.split(',').forEach(l => {
-                        const cleanName = l.trim();
-                        if(cleanName) listSet.add(cleanName);
-                    });
-                }
-            });
+            const uniqueLists = getUniqueCustomLists();
+            const container = document.getElementById('dynamicLists');
+            
+            container.innerHTML = uniqueLists.map(listName => 
+                `<div class="nav-item" data-filter="${escapeAttr(listName)}" onclick="setFilter('${listName.replace(/'/g, "\\'")}', this)">📌 ${listName}</div>`
+            ).join('');
+        }
 
             const container = document.getElementById('dynamicLists');
             container.innerHTML = Array.from(listSet).map(listName => 
@@ -594,21 +605,18 @@
             if (rewatch.length) { html += renderHomeSection('Пересматриваем любимое', rewatch, 'rewatch'); anySection = true; }
 
             // Кастомные списки — по 7 фильмов из каждого
-            const listSet = new Set();
-            allData.forEach(item => {
-                if (item.customlists) {
-                    item.customlists.split(',').forEach(l => {
-                        const cleanName = l.trim();
-                        if (cleanName) listSet.add(cleanName);
-                    });
-                }
-            });
-            listSet.forEach(listName => {
+            const uniqueLists = getUniqueCustomLists();
+            
+            uniqueLists.forEach(listName => {
                 const items = allData.filter(i => {
                     if (!i.customlists) return false;
                     return i.customlists.split(',').map(l => l.trim()).includes(listName);
                 }).slice(0, 7);
-                if (items.length) { html += renderHomeSection(listName, items, listName); anySection = true; }
+                
+                if (items.length) { 
+                    html += renderHomeSection(listName, items, listName); 
+                    anySection = true; 
+                }
             });
 
             if (!anySection) {
