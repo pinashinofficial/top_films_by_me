@@ -257,6 +257,28 @@
             .grid { grid-template-columns: repeat(auto-fill, minmax(140px, 1fr)); gap: 15px; }
             .card img { height: 210px; }
         }
+
+        .back-to-main-btn {
+            background: rgba(255,255,255,0.08); 
+            border: none; 
+            color: #999; 
+            width: 32px; 
+            height: 32px; 
+            border-radius: 50%; 
+            font-size: 14px; 
+            cursor: pointer; 
+            display: flex; 
+            align-items: center; 
+            justify-content: center; 
+            transition: all 0.2s;
+            margin-top: 4px; /* Выравниваем по центру относительно крупного шрифта заголовка */
+        }
+        .back-to-main-btn:hover {
+            background: rgba(255,255,255,0.18);
+            color: #fff;
+            transform: scale(1.1);
+        }
+        
     </style>
 </head>
 <body>
@@ -284,8 +306,12 @@
     <!-- Основной контент -->
     <main class="main-content">
         <header>
-    <button class="burger" onclick="toggleSidebar()">☰</button>
-    <div class="page-title" id="pageTitle">Главная</div>
+    <div style="display: flex; align-items: center; gap: 15px;">
+        <button class="burger" onclick="toggleSidebar()">☰</button>
+        <div class="page-title" id="pageTitle">Главная</div>
+        <!-- Новая кнопка-крестик (по умолчанию скрыта на Главной) -->
+        <button id="backToMainBtn" class="back-to-main-btn" onclick="goToFilter('main')" style="display: none;" title="Вернуться на главную">✕</button>
+    </div>
     
     <div style="display: none; gap: 10px; flex-wrap: wrap;" id="filtersBar">
         <!-- Новый фильтр по жанрам -->
@@ -436,7 +462,13 @@
 
             // На Главной жанры/сортировка не нужны — там сборная подборка из разных категорий
             document.getElementById('filtersBar').style.display = (filterType === 'main') ? 'none' : 'flex';
-        
+
+            // Управление видимостью кнопки возврата на главную
+            const backBtn = document.getElementById('backToMainBtn');
+            if (backBtn) {
+                backBtn.style.display = (filterType === 'main') ? 'none' : 'flex';
+            }
+            
             if(window.innerWidth <= 768) toggleSidebar(); 
             render();
         }
@@ -775,10 +807,18 @@
             if (e.key !== 'Escape') return;
             const trailerOverlay = document.getElementById('trailerOverlay');
             const modalOverlay = document.getElementById('modalOverlay');
+            
+            // Если открыт трейлер — закрываем его
             if (trailerOverlay && trailerOverlay.classList.contains('active')) {
                 closeTrailer();
-            } else if (modalOverlay && modalOverlay.classList.contains('active')) {
+            } 
+            // Иначе, если открыта карточка фильма — закрываем её
+            else if (modalOverlay && modalOverlay.classList.contains('active')) {
                 closeModal();
+            } 
+            // Иначе, если мы не на Главной странице — возвращаемся на неё
+            else if (currentFilter !== 'main') {
+                goToFilter('main');
             }
         });
     </script>
