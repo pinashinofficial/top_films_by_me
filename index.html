@@ -580,7 +580,7 @@
             if (top.length) { html += renderHomeSection('ТОП 100', top, 'top100'); anySection = true; }
 
             // Пересматриваем любимое
-            const rewatch = allData.filter(i => i.rewatch === true).slice(0, 6);
+            const rewatch = allData.filter(i => i.rewatch === true).slice(0, 7);
             if (rewatch.length) { html += renderHomeSection('Пересматриваем любимое', rewatch, 'rewatch'); anySection = true; }
 
             // Кастомные списки — по 7 фильмов из каждого
