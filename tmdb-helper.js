@@ -52,9 +52,9 @@ async function tmdbFetchVideos(tmdbId, mediaType, language) {
     return data.results || [];
 }
 
-// Выбирает лучший ролик с YouTube: сначала официальный трейлер,
+// Сортирует ролики с YouTube по приоритету: сначала официальный трейлер,
 // потом любой трейлер, потом тизер.
-function pickBestTrailer(videos) {
+function sortTrailerCandidates(videos) {
     const yt = (videos || []).filter(v => v.site === 'YouTube' && v.key);
     const priority = v => {
         if (v.type === 'Trailer' && v.official) return 0;
@@ -63,7 +63,31 @@ function pickBestTrailer(videos) {
         return 3;
     };
     yt.sort((a, b) => priority(a) - priority(b));
-    return yt[0] || null;
+    return yt;
+}
+
+// TMDB иногда хранит ссылки на ролики, которые на самом YouTube уже удалены
+// или закрыты (как было с одним из трейлеров «Мстители: Финал») — TMDB это
+// не отслеживает. Проверяем реальную доступность через публичный oEmbed
+// YouTube (не требует API-ключа): если видео недоступно, он отвечает не-200.
+async function isYouTubeVideoAvailable(videoId) {
+    try {
+        const res = await fetch(`https://www.youtube.com/oembed?url=${encodeURIComponent('https://www.youtube.com/watch?v=' + videoId)}&format=json`);
+        return res.ok;
+    } catch (e) {
+        // Если проверка не удалась из-за сети — не блокируем выбор, лучше
+        // предложить ролик, чем не предложить ничего.
+        return true;
+    }
+}
+
+// Перебирает кандидатов по приоритету и возвращает первый реально доступный.
+async function pickBestAvailableTrailer(videos) {
+    const candidates = sortTrailerCandidates(videos);
+    for (const v of candidates) {
+        if (await isYouTubeVideoAvailable(v.key)) return v;
+    }
+    return null;
 }
 
 function escapeHtml(str) {
