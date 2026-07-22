@@ -36,6 +36,36 @@ function rankTmdbResults(results, preferredType, year) {
     });
 }
 
+// =====================================================================
+// ПОИСК ТРЕЙЛЕРА НА YOUTUBE ЧЕРЕЗ TMDB
+// Используем тот же tmdbId/media_type, что уже получен при поиске
+// постера, чтобы не делать повторный запрос по названию.
+// =====================================================================
+
+async function tmdbFetchVideos(tmdbId, mediaType, language) {
+    const url = `https://api.themoviedb.org/3/${mediaType}/${tmdbId}/videos?api_key=${TMDB_API_KEY}&language=${language}`;
+    const res = await fetch(url);
+    const data = await res.json();
+    if (!res.ok) {
+        throw new Error(data.status_message || ('TMDB request failed: ' + res.status));
+    }
+    return data.results || [];
+}
+
+// Выбирает лучший ролик с YouTube: сначала официальный трейлер,
+// потом любой трейлер, потом тизер.
+function pickBestTrailer(videos) {
+    const yt = (videos || []).filter(v => v.site === 'YouTube' && v.key);
+    const priority = v => {
+        if (v.type === 'Trailer' && v.official) return 0;
+        if (v.type === 'Trailer') return 1;
+        if (v.type === 'Teaser') return 2;
+        return 3;
+    };
+    yt.sort((a, b) => priority(a) - priority(b));
+    return yt[0] || null;
+}
+
 function escapeHtml(str) {
     const div = document.createElement('div');
     div.textContent = str == null ? '' : String(str);
